@@ -53,7 +53,7 @@ struct BoardImpl {
 
 impl Board for BoardImpl {
     fn whose_move(&self) -> Color {
-        Color::WHITE
+        self.player_turn
     }
 
     fn get_piece(&self, sq: &Square) -> Option<Piece> {
@@ -170,6 +170,40 @@ mod tests {
     fn white_is_starting_player() {
         let board = new_board();
         assert_eq!(board.whose_move(), Color::WHITE);
+    }
+
+    #[test]
+    fn blacks_turn_after_white_has_taken_a_turn() -> Result<(), Box<dyn Error>> {
+        let mut board = new_board();
+
+        board.move_piece(&Square(0, 1), &Square(0, 3))?;
+
+        assert_eq!(board.whose_move(), Color::BLACK);
+
+        Ok(())
+    }
+
+    #[test]
+    fn whites_turn_after_an_invalid_move_by_white() -> Result<(), Box<dyn Error>> {
+        let mut board = new_board();
+
+        let _ = board.move_piece(&Square(3, 2), &Square(3, 6));
+
+        assert_eq!(board.whose_move(), Color::WHITE);
+
+        Ok(())
+    }
+
+    #[test]
+    fn white_is_active_player_after_both_players_have_moved() -> Result<(), Box<dyn Error>> {
+        let mut board = new_board();
+
+        board.move_piece(&Square(0, 1), &Square(0, 3))?;
+        board.move_piece(&Square(4, 6), &Square(4, 5))?;
+
+        assert_eq!(board.whose_move(), Color::WHITE);
+
+        Ok(())
     }
 
     #[test]
@@ -299,7 +333,7 @@ mod tests {
     }
 
     #[test]
-    fn get_pawn_after_it_has_moved() -> Result<(), Box<dyn Error>> {
+    fn get_pawn_at_new_square_after_it_has_moved() -> Result<(), Box<dyn Error>> {
         let mut board = new_board();
         let from_sq = Square(2, 1);
         let target_sq = Square(2, 3);
@@ -317,7 +351,7 @@ mod tests {
     }
 
     #[test]
-    fn black_is_not_able_to_start_the_game() {
+    fn black_is_not_allowed_to_move_first() {
         let mut board = new_board();
 
         // Check every pawn
