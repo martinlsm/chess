@@ -1,19 +1,8 @@
 use crate::color::Color;
 use crate::piece::{Piece, get_color, tag_as_moved};
+use crate::error::chess_error;
 
 use std::error::Error;
-use std::fmt;
-
-#[derive(Debug, Clone)]
-struct ChessError(String);
-
-impl fmt::Display for ChessError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> {
-        f.write_str(&self.0)
-    }
-}
-
-impl Error for ChessError {}
 
 pub trait Board {
     fn whose_move(&self) -> Color;
@@ -74,18 +63,16 @@ impl Board for BoardImpl {
     fn move_piece(&mut self, from: &Square, to: &Square) -> Result<(), Box<dyn Error>> {
         let piece = &self.pieces[from.0][from.1];
         if *piece == None {
-            return Err(Box::new(ChessError(String::from("Square is empty"))));
+            return Err(chess_error("Square is empty"));
         }
         let piece = piece.unwrap();
 
         if get_color(&piece) != self.player_turn {
-            return Err(Box::new(ChessError(String::from(
-                "Not this player's turn to move",
-            ))));
+            return Err(chess_error("Not this player's turn to move"));
         }
 
         if !self.valid_move(&piece, from, to) {
-            return Err(Box::new(ChessError(String::from("Invalid move"))));
+            return Err(chess_error("Invalid move"));
         }
 
         self.pieces[to.0][to.1] = self.pieces[from.0][from.1].map(|p| tag_as_moved(&p));
