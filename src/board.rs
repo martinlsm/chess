@@ -357,7 +357,7 @@ mod tests {
         let mut board = new_board();
 
         // Try to move a white pawn diagonally (invalid)
-        board.move_piece(&Square(3, 1), &Square(4, 2));
+        let _ = board.move_piece(&Square(3, 1), &Square(4, 2));
 
         assert!(board.move_piece(&Square(0, 6), &Square(0, 5)).is_err());
 
