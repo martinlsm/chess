@@ -4,6 +4,30 @@ use crate::error::chess_error;
 
 use std::error::Error;
 
+#[macro_export]
+macro_rules! square {
+    (  $str:tt ) => {
+        {
+            assert_eq!($str.len(), 2);
+
+            let u_str = $str.to_uppercase();
+
+            let fst: u8 = u_str.as_bytes()[0];
+            assert!(fst >= 'A' as u8);
+            assert!(fst <= 'H' as u8);
+            let fst = (fst - 'A' as u8) as usize;
+
+            let snd: u8 = u_str.as_bytes()[1];
+            assert!(snd >= '1' as u8);
+            assert!(snd <= '8' as u8);
+            let snd = (snd - '1' as u8) as usize;
+
+
+            &Square(fst, snd)
+        }
+    }
+}
+
 pub trait Board {
     fn whose_move(&self) -> Color;
     fn get_piece(&self, square: &Square) -> Option<Piece>;
@@ -176,7 +200,7 @@ mod tests {
     fn blacks_turn_after_white_has_taken_a_turn() -> Result<(), Box<dyn Error>> {
         let mut board = new_board();
 
-        board.move_piece(&Square(0, 1), &Square(0, 3))?;
+        board.move_piece(square!("A2"), square!("A4"))?;
 
         assert_eq!(board.whose_move(), Color::BLACK);
 
@@ -187,7 +211,7 @@ mod tests {
     fn whites_turn_after_an_invalid_move_by_white() -> Result<(), Box<dyn Error>> {
         let mut board = new_board();
 
-        let _ = board.move_piece(&Square(3, 2), &Square(3, 6));
+        let _ = board.move_piece(square!("C3"), square!("C7"));
 
         assert_eq!(board.whose_move(), Color::WHITE);
 
@@ -198,8 +222,8 @@ mod tests {
     fn white_is_active_player_after_both_players_have_moved() -> Result<(), Box<dyn Error>> {
         let mut board = new_board();
 
-        board.move_piece(&Square(0, 1), &Square(0, 3))?;
-        board.move_piece(&Square(4, 6), &Square(4, 5))?;
+        board.move_piece(square!("A2"), square!("A4"))?;
+        board.move_piece(square!("D7"), square!("D6"))?;
 
         assert_eq!(board.whose_move(), Color::WHITE);
 
@@ -220,35 +244,35 @@ mod tests {
 
         // Rest of white's pieces
         assert_eq!(
-            board.get_piece(&Square(0, 0)),
+            board.get_piece(square!("A1")),
             Some(Piece::ROOK(Color::WHITE, false))
         );
         assert_eq!(
-            board.get_piece(&Square(1, 0)),
+            board.get_piece(square!("B1")),
             Some(Piece::KNIGHT(Color::WHITE))
         );
         assert_eq!(
-            board.get_piece(&Square(2, 0)),
+            board.get_piece(square!("C1")),
             Some(Piece::BISHOP(Color::WHITE))
         );
         assert_eq!(
-            board.get_piece(&Square(3, 0)),
+            board.get_piece(square!("D1")),
             Some(Piece::QUEEN(Color::WHITE))
         );
         assert_eq!(
-            board.get_piece(&Square(4, 0)),
+            board.get_piece(square!("E1")),
             Some(Piece::KING(Color::WHITE, false))
         );
         assert_eq!(
-            board.get_piece(&Square(5, 0)),
+            board.get_piece(square!("F1")),
             Some(Piece::BISHOP(Color::WHITE))
         );
         assert_eq!(
-            board.get_piece(&Square(6, 0)),
+            board.get_piece(square!("G1")),
             Some(Piece::KNIGHT(Color::WHITE))
         );
         assert_eq!(
-            board.get_piece(&Square(7, 0)),
+            board.get_piece(square!("H1")),
             Some(Piece::ROOK(Color::WHITE, false))
         );
 
@@ -262,35 +286,35 @@ mod tests {
 
         // Rest of black's pieces
         assert_eq!(
-            board.get_piece(&Square(0, 7)),
+            board.get_piece(square!("A8")),
             Some(Piece::ROOK(Color::BLACK, false))
         );
         assert_eq!(
-            board.get_piece(&Square(1, 7)),
+            board.get_piece(square!("B8")),
             Some(Piece::KNIGHT(Color::BLACK))
         );
         assert_eq!(
-            board.get_piece(&Square(2, 7)),
+            board.get_piece(square!("C8")),
             Some(Piece::BISHOP(Color::BLACK))
         );
         assert_eq!(
-            board.get_piece(&Square(3, 7)),
+            board.get_piece(square!("D8")),
             Some(Piece::QUEEN(Color::BLACK))
         );
         assert_eq!(
-            board.get_piece(&Square(4, 7)),
+            board.get_piece(square!("E8")),
             Some(Piece::KING(Color::BLACK, false))
         );
         assert_eq!(
-            board.get_piece(&Square(5, 7)),
+            board.get_piece(square!("F8")),
             Some(Piece::BISHOP(Color::BLACK))
         );
         assert_eq!(
-            board.get_piece(&Square(6, 7)),
+            board.get_piece(square!("G8")),
             Some(Piece::KNIGHT(Color::BLACK))
         );
         assert_eq!(
-            board.get_piece(&Square(7, 7)),
+            board.get_piece(square!("H8")),
             Some(Piece::ROOK(Color::BLACK, false))
         );
 
@@ -302,25 +326,36 @@ mod tests {
     fn move_pawn_one_step_after_new_game() {
         let mut board = new_board();
 
-        assert!(board.move_piece(&Square(0, 1), &Square(0, 2)).is_ok());
+        assert!(board.move_piece(square!("A2"), square!("A3")).is_ok());
     }
 
     #[test]
     fn move_pawn_two_steps_after_new_game() {
         let mut board = new_board();
 
-        assert!(board.move_piece(&Square(3, 1), &Square(3, 3)).is_ok());
+        assert!(board.move_piece(square!("D2"), square!("D4")).is_ok());
+    }
+
+    #[test]
+    fn pawn_cannot_move_two_steps_when_already_moved() -> Result<(), Box<dyn Error>> {
+        let mut board = new_board();
+
+        board.move_piece(square!("E2"), square!("E3"))?;
+        // Move a black piece in between
+        board.move_piece(square!("A7"), square!("A6"))?;
+
+        assert!(board.move_piece(square!("E3"), square!("E5")).is_err());
+
+        Ok(())
     }
 
     #[test]
     fn reject_white_to_move_twice() -> Result<(), Box<dyn Error>> {
         let mut board = new_board();
 
-        // Valid move
-        board.move_piece(&Square(3, 1), &Square(3, 3))?;
+        board.move_piece(square!("D2"), square!("D4"))?;
 
-        // Valid move, but it's black's turn
-        assert!(board.move_piece(&Square(0, 1), &Square(0, 2)).is_err());
+        assert!(board.move_piece(square!("A2"), square!("A3")).is_err());
 
         Ok(())
     }
@@ -329,14 +364,14 @@ mod tests {
     fn reject_white_pawn_to_move_diagonally_forwards() {
         let mut board = new_board();
 
-        assert!(board.move_piece(&Square(4, 1), &Square(3, 2)).is_err());
+        assert!(board.move_piece(square!("E2"), square!("D3")).is_err());
     }
 
     #[test]
     fn get_pawn_at_new_square_after_it_has_moved() -> Result<(), Box<dyn Error>> {
         let mut board = new_board();
-        let from_sq = Square(2, 1);
-        let target_sq = Square(2, 3);
+        let from_sq = square!("C2");
+        let target_sq = square!("C4");
 
         // Move a pawn forward two steps
         board.move_piece(&from_sq, &target_sq)?;
@@ -358,6 +393,12 @@ mod tests {
         for i in 0..8 {
             assert!(board.move_piece(&Square(i, 6), &Square(i, 5)).is_err());
         }
+
+        // Check knights
+        assert!(board.move_piece(square!("B8"), square!("A6")).is_err());
+        assert!(board.move_piece(square!("B8"), square!("C6")).is_err());
+        assert!(board.move_piece(square!("G8"), square!("F6")).is_err());
+        assert!(board.move_piece(square!("G8"), square!("H6")).is_err());
     }
 
     #[test]
@@ -365,10 +406,10 @@ mod tests {
         let mut board = new_board();
 
         // Move a white pawn
-        board.move_piece(&Square(1, 1), &Square(1, 2))?;
+        board.move_piece(square!("B2"), square!("B3"))?;
 
         // Move a black pawn
-        assert!(board.move_piece(&Square(4, 6), &Square(4, 4)).is_ok());
+        assert!(board.move_piece(square!("E7"), square!("E5")).is_ok());
 
         Ok(())
     }
@@ -378,9 +419,9 @@ mod tests {
         let mut board = new_board();
 
         // Try to move a white pawn diagonally (invalid)
-        let _ = board.move_piece(&Square(3, 1), &Square(4, 2));
+        let _ = board.move_piece(square!("D2"), square!("E3"));
 
-        assert!(board.move_piece(&Square(0, 6), &Square(0, 5)).is_err());
+        assert!(board.move_piece(square!("A7"), square!("A6")).is_err());
 
         Ok(())
     }
@@ -390,14 +431,39 @@ mod tests {
         let mut board = new_board();
 
         // Move white and black pawn adjacent to eachother
-        board.move_piece(&Square(3, 1), &Square(3, 3))?;
-        board.move_piece(&Square(3, 6), &Square(3, 4))?;
+        board.move_piece(square!("D2"), square!("D4"))?;
+        board.move_piece(square!("D7"), square!("D5"))?;
 
-        assert!(board.move_piece(&Square(3, 3), &Square(3, 4)).is_err());
+        assert!(board.move_piece(square!("D4"), square!("D5")).is_err());
 
         Ok(())
     }
 
+    #[test]
+    fn white_pawn_cannot_move_backward() -> Result<(), Box<dyn Error>> {
+        let mut board = new_board();
+
+        board.move_piece(square!("C2"), square!("C4"))?;
+        board.move_piece(square!("H7"), square!("H6"))?;
+
+        assert!(board.move_piece(square!("C4"), square!("C3")).is_err());
+
+        Ok(())
+    }
+
+    #[test]
+    fn black_pawn_cannot_move_backward() -> Result<(), Box<dyn Error>> {
+        let mut board = new_board();
+
+        board.move_piece(square!("H2"), square!("H3"))?;
+        board.move_piece(square!("H7"), square!("H5"))?;
+        board.move_piece(square!("B2"), square!("B4"))?;
+
+        assert!(board.move_piece(square!("H5"), square!("H6")).is_err());
+
+        Ok(())
+    }
+
+    // TODO: Add test case that checks that pawns can't move through pieces when moving two steps
     // TODO: Add out-of-bounds tests
-    // TODO: Macros for squares, e.g. sq!("A1") == Square(0, 0)
 }
