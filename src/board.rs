@@ -4,6 +4,41 @@ use crate::error::chess_error;
 
 use std::error::Error;
 
+#[macro_export]
+macro_rules! ec {
+    ( $( $x:expr ),* ) => {
+        {
+            let mut temp_vec = Vec::new();
+            $(
+                temp_vec.push($x);
+
+            )*
+            temp_vec
+        }
+    };
+}
+
+#[macro_export]
+macro_rules! square {
+    (  $str:tt ) => {
+        {
+            assert_eq!($str.len(), 2);
+
+            let u_str = $str.to_uppercase();
+
+            let fst: u8 = u_str.as_bytes()[0];
+            assert!(fst >= 'A' as u8);
+            assert!(fst <= 'H' as u8);
+
+            let snd: u8 = u_str.as_bytes()[1];
+            assert!(snd >= '1' as u8);
+            assert!(snd <= '8' as u8);
+
+            &Square((fst - 'A' as u8) as usize, (snd - 1) as usize)
+        }
+    }
+}
+
 pub trait Board {
     fn whose_move(&self) -> Color;
     fn get_piece(&self, square: &Square) -> Option<Piece>;
@@ -176,7 +211,7 @@ mod tests {
     fn blacks_turn_after_white_has_taken_a_turn() -> Result<(), Box<dyn Error>> {
         let mut board = new_board();
 
-        board.move_piece(&Square(0, 1), &Square(0, 3))?;
+        board.move_piece(square!("A2"), square!("A4"))?;
 
         assert_eq!(board.whose_move(), Color::BLACK);
 
