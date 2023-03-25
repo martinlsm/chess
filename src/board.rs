@@ -22,7 +22,6 @@ macro_rules! square {
             assert!(snd <= '8' as u8);
             let snd = (snd - '1' as u8) as usize;
 
-
             &Square(fst, snd)
         }
     }
@@ -118,7 +117,10 @@ impl BoardImpl {
             return false;
         }
 
-        let brd = &self.pieces;
+        if to.0 >= 8 || to.1 >= 8 {
+            return false;
+        }
+
         match piece {
             Piece::BISHOP(_) => todo!(),
             Piece::KING(_, _) => todo!(),
@@ -138,7 +140,15 @@ impl BoardImpl {
                     }
 
                     // Verify that squares in the path are empty
-                    return path.iter().all(|sq| brd[sq.0][sq.1] == None);
+                    return path.iter().all(|sq| self.pieces[sq.0][sq.1] == None);
+                }
+
+                // Check pawn captures
+                if *color == Color::WHITE && to.1 == from.1 + 1 && (to.0 as i32 - from.0 as i32).abs() == 1 {
+                    return true;
+                }
+                if *color == Color::BLACK && to.1 == from.1 - 1 && (to.0 as i32 - from.0 as i32).abs() == 1 {
+                    return true;
                 }
 
                 // TODO: Pawn should be able to capture
@@ -323,14 +333,26 @@ mod tests {
     }
 
     #[test]
-    fn move_pawn_one_step_after_new_game() {
+    fn piece_can_be_getted_after_moved() -> Result<(), Box<dyn Error>> {
+        let mut board = new_board();
+
+        board.move_piece(square!("A2"), square!("A3"))?;
+
+        assert_eq!(board.get_piece(square!("A2")), None);
+        assert_eq!(board.get_piece(square!("A3")), Some(Piece::PAWN(Color::WHITE, true)));
+
+        Ok(())
+    }
+
+    #[test]
+    fn white_pawn_can_move_one_step_after_new_game() {
         let mut board = new_board();
 
         assert!(board.move_piece(square!("A2"), square!("A3")).is_ok());
     }
 
     #[test]
-    fn move_pawn_two_steps_after_new_game() {
+    fn white_pawn_can_move_two_steps_after_new_game() {
         let mut board = new_board();
 
         assert!(board.move_piece(square!("D2"), square!("D4")).is_ok());
@@ -460,6 +482,71 @@ mod tests {
         board.move_piece(square!("B2"), square!("B4"))?;
 
         assert!(board.move_piece(square!("H5"), square!("H6")).is_err());
+
+        Ok(())
+    }
+
+    #[test]
+    fn piece_disappears_when_captured() -> Result<(), Box<dyn Error>> {
+        let mut board = new_board();
+
+        board.move_piece(square!("B2"), square!("B4"))?;
+        board.move_piece(square!("A7"), square!("A5"))?;
+        board.move_piece(square!("B4"), square!("A5"))?;
+
+        assert_eq!(board.get_piece(square!("B4")), None);
+        assert_eq!(board.get_piece(square!("A5")), Some(Piece::PAWN(Color::WHITE, true)));
+
+        Ok(())
+    }
+
+    #[test]
+    fn white_pawn_can_capture_piece_to_its_right() -> Result<(), Box<dyn Error>> {
+        let mut board = new_board();
+
+        board.move_piece(square!("D2"), square!("D4"))?;
+        board.move_piece(square!("E7"), square!("E5"))?;
+
+        assert!(board.move_piece(square!("D4"), square!("E5")).is_ok());
+
+        Ok(())
+    }
+
+    #[test]
+    fn white_pawn_can_capture_piece_its_the_left() -> Result<(), Box<dyn Error>> {
+        let mut board = new_board();
+
+        board.move_piece(square!("H2"), square!("H4"))?;
+        board.move_piece(square!("G7"), square!("G5"))?;
+
+        assert!(board.move_piece(square!("D4"), square!("E5")).is_ok());
+
+        Ok(())
+    }
+
+    #[test]
+    fn black_pawn_can_capture_to_its_left() -> Result<(), Box<dyn Error>> {
+        let mut board = new_board();
+
+        board.move_piece(square!("H2"), square!("H3"))?;
+        board.move_piece(square!("G7"), square!("G5"))?;
+        board.move_piece(square!("H3"), square!("H4"))?;
+
+        assert!(board.move_piece(square!("G5"), square!("H4")).is_ok());
+
+        Ok(())
+
+    }
+
+    #[test]
+    fn black_pawn_can_capture_to_its_right() -> Result<(), Box<dyn Error>> {
+        let mut board = new_board();
+
+        board.move_piece(square!("D2"), square!("D3"))?;
+        board.move_piece(square!("E7"), square!("E5"))?;
+        board.move_piece(square!("D3"), square!("D4"))?;
+
+        assert!(board.move_piece(square!("E5"), square!("D4")).is_ok());
 
         Ok(())
     }
