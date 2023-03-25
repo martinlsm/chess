@@ -119,6 +119,10 @@ impl BoardImpl {
             return false;
         }
 
+        if Some(get_color(&piece)) == self.pieces[to.0][to.1].map(|p| get_color(&p)) {
+            return false;
+        }
+
         match piece {
             Piece::BISHOP(_) => todo!(),
             Piece::KING(_, _) => todo!(),
@@ -146,7 +150,9 @@ impl BoardImpl {
         }
 
         // Check pawn captures
-        if let Some(_) = self.pieces[to.0][to.1] {
+        if let Some(target) = self.pieces[to.0][to.1] {
+            assert!(get_color(&target) != color);  // Should already be checked
+
             if color == Color::WHITE
                 && to.1 == from.1 + 1
                 && (to.0 as i32 - from.0 as i32).abs() == 1
@@ -204,6 +210,11 @@ mod tests {
     use super::*;
 
     use itertools::iproduct;
+
+    #[test]
+    fn square_macro_is_case_insensitive() {
+        assert_eq!(square!("A1"), square!("a1"));
+    }
 
     #[test]
     fn white_is_starting_player() {
@@ -348,6 +359,21 @@ mod tests {
             board.get_piece(square!("A3")),
             Some(Piece::PAWN(Color::WHITE, true))
         );
+
+        Ok(())
+    }
+
+    #[test]
+    fn pawn_cannot_capture_piece_of_its_own_color() -> Result<(), Box<dyn Error>> {
+        let mut board = new_board();
+
+        // Position two white pawns diagonally adjacent to eachother
+        board.move_piece(square!("D2"), square!("D4"))?;
+        board.move_piece(square!("H7"), square!("H6"))?;
+        board.move_piece(square!("C2"), square!("C3"))?;
+        board.move_piece(square!("H6"), square!("H5"))?;
+
+        assert!(board.move_piece(square!("C3"), square!("D4")).is_err());
 
         Ok(())
     }
