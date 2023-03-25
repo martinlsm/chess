@@ -123,45 +123,45 @@ impl BoardImpl {
             Piece::BISHOP(_) => todo!(),
             Piece::KING(_, _) => todo!(),
             Piece::KNIGHT(_) => todo!(),
-            Piece::PAWN(color, has_moved) => {
-                if let Some(path) = perpendicular_path(from, to) {
-                    // Verify that path has valid length
-                    if path.len() > 2 || path.len() > 1 && *has_moved {
-                        return false;
-                    }
-
-                    // Verify that the perpendicular path is forward
-                    if *color == Color::WHITE && to.1 <= from.1
-                        || *color == Color::BLACK && to.1 >= from.1
-                    {
-                        return false;
-                    }
-
-                    // Verify that squares in the path are empty
-                    return path.iter().all(|sq| self.pieces[sq.0][sq.1] == None);
-                }
-
-                // Check pawn captures
-                if let Some(_) = self.pieces[to.0][to.1] {
-                    if *color == Color::WHITE
-                        && to.1 == from.1 + 1
-                        && (to.0 as i32 - from.0 as i32).abs() == 1
-                    {
-                        return true;
-                    }
-                    if *color == Color::BLACK
-                        && to.1 == from.1 - 1
-                        && (to.0 as i32 - from.0 as i32).abs() == 1
-                    {
-                        return true;
-                    }
-                }
-
-                false
-            }
+            Piece::PAWN(color, has_moved) => self.valid_pawn_move(*color, *has_moved, from, to),
             Piece::QUEEN(_) => todo!(),
             Piece::ROOK(_, _) => todo!(),
         }
+    }
+
+    fn valid_pawn_move(&self, color: Color, has_moved: bool, from: &Square, to: &Square) -> bool {
+        if let Some(path) = perpendicular_path(from, to) {
+            // Verify that path has valid length
+            if path.len() > 2 || path.len() > 1 && has_moved {
+                return false;
+            }
+
+            // Verify that the perpendicular path is forward
+            if color == Color::WHITE && to.1 <= from.1 || color == Color::BLACK && to.1 >= from.1 {
+                return false;
+            }
+
+            // Verify that squares in the path are empty
+            return path.iter().all(|sq| self.pieces[sq.0][sq.1] == None);
+        }
+
+        // Check pawn captures
+        if let Some(_) = self.pieces[to.0][to.1] {
+            if color == Color::WHITE
+                && to.1 == from.1 + 1
+                && (to.0 as i32 - from.0 as i32).abs() == 1
+            {
+                return true;
+            }
+            if color == Color::BLACK
+                && to.1 == from.1 - 1
+                && (to.0 as i32 - from.0 as i32).abs() == 1
+            {
+                return true;
+            }
+        }
+
+        false
     }
 }
 
