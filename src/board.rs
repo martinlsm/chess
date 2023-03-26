@@ -126,7 +126,7 @@ impl BoardImpl {
         match piece {
             Piece::BISHOP(_) => todo!(),
             Piece::KING(_, _) => todo!(),
-            Piece::KNIGHT(_) => todo!(),
+            Piece::KNIGHT(_) => self.valid_knight_move(from, to),
             Piece::PAWN(color, has_moved) => self.valid_pawn_move(*color, *has_moved, from, to),
             Piece::QUEEN(_) => todo!(),
             Piece::ROOK(_, _) => todo!(),
@@ -151,7 +151,7 @@ impl BoardImpl {
 
         // Check pawn captures
         if let Some(target) = self.pieces[to.0][to.1] {
-            assert!(get_color(&target) != color);  // Should already be checked
+            assert!(get_color(&target) != color); // Should already be checked
 
             if color == Color::WHITE
                 && to.1 == from.1 + 1
@@ -168,6 +168,13 @@ impl BoardImpl {
         }
 
         false
+    }
+
+    fn valid_knight_move(&self, from: &Square, to: &Square) -> bool {
+        let file_diff = (from.0 as i32 - to.0 as i32).abs();
+        let rank_diff = (from.1 as i32 - to.1 as i32).abs();
+
+        file_diff == 2 && rank_diff == 1 || file_diff == 1 && rank_diff == 2
     }
 }
 
@@ -587,6 +594,75 @@ mod tests {
         Ok(())
     }
 
+    #[test]
+    fn knights_can_move_all_8_directions() {
+        let mut board = new_board();
+
+        // Move the 4 knights around without capturing any pieces
+        assert!(board.move_piece(square!("B1"), square!("C3")).is_ok()); // 2 up   & 1 right
+        assert!(board.move_piece(square!("B8"), square!("C6")).is_ok()); // 2 down & 1 right
+        assert!(board.move_piece(square!("G1"), square!("F3")).is_ok()); // 2 up   & 1 left
+        assert!(board.move_piece(square!("G8"), square!("F6")).is_ok()); // 2 down & 1 left
+        assert!(board.move_piece(square!("C3"), square!("E4")).is_ok()); // 1 up   & 2 left
+        assert!(board.move_piece(square!("C6"), square!("E5")).is_ok()); // 1 down & 2 right
+        assert!(board.move_piece(square!("F3"), square!("D4")).is_ok()); // 1 up   & 2 left
+        assert!(board.move_piece(square!("F6"), square!("D5")).is_ok()); // 1 down & 2 left
+    }
+
+    #[test]
+    fn knight_cannot_capture_piece_of_its_own_color() {
+        let mut board = new_board();
+
+        assert!(board.move_piece(square!("B1"), square!("D2")).is_err());
+        assert!(board.move_piece(square!("G1"), square!("E2")).is_err());
+    }
+
+    #[test]
+    fn piece_cannot_move_outside_board() -> Result<(), Box<dyn Error>> {
+        let mut board = new_board();
+
+        board.move_piece(square!("D2"), square!("D3"))?;
+
+        assert!(board.move_piece(square!("B8"), &Square(0, 9)).is_err());
+
+        Ok(())
+    }
+
+    #[test]
+    fn white_knight_can_capture_a_piece() -> Result<(), Box<dyn Error>> {
+        let mut board = new_board();
+
+        board.move_piece(square!("B1"), square!("C3"))?;
+        board.move_piece(square!("D7"), square!("D5"))?;
+
+        assert!(board.move_piece(square!("C3"), square!("D5")).is_ok());
+
+        Ok(())
+    }
+
+    #[test]
+    fn knights_can_capture_pieces() -> Result<(), Box<dyn Error>> {
+        let mut board = new_board();
+
+        board.move_piece(square!("D2"), square!("D4"))?;
+        board.move_piece(square!("B8"), square!("C6"))?;
+        board.move_piece(square!("G1"), square!("F3"))?;
+
+        assert!(board.move_piece(square!("C6"), square!("D4")).is_ok());
+        assert!(board.move_piece(square!("F3"), square!("D4")).is_ok());
+
+        Ok(())
+    }
+
+    #[test]
+    fn invalid_step_sizes_for_knight_are_rejected() {
+        let mut board = new_board();
+
+        assert!(board.move_piece(square!("B1"), square!("B3")).is_err());
+        assert!(board.move_piece(square!("B1"), square!("B4")).is_err());
+        assert!(board.move_piece(square!("B1"), square!("B1")).is_err());
+        assert!(board.move_piece(square!("B1"), square!("D3")).is_err());
+    }
+
     // TODO: Add test case that checks that pawns can't move through pieces when moving two steps
-    // TODO: Add out-of-bounds tests
 }
