@@ -587,6 +587,40 @@ mod tests {
         Ok(())
     }
 
+    #[test]
+    fn knights_can_move_all_8_directions() {
+        let mut board = new_board();
+
+        // Move the 4 knights around without capturing any pieces
+        assert!(board.move_piece(square!("B1"), square!("C3")).is_ok()); // 2 up   & 1 right
+        assert!(board.move_piece(square!("B8"), square!("C6")).is_ok()); // 2 down & 1 right
+        assert!(board.move_piece(square!("G1"), square!("F3")).is_ok()); // 2 up   & 1 left
+        assert!(board.move_piece(square!("G8"), square!("F6")).is_ok()); // 2 down & 1 left
+        assert!(board.move_piece(square!("C3"), square!("E4")).is_ok()); // 1 up   & 2 left
+        assert!(board.move_piece(square!("C6"), square!("E5")).is_ok()); // 1 down & 2 right
+        assert!(board.move_piece(square!("F3"), square!("D4")).is_ok()); // 1 up   & 2 left
+        assert!(board.move_piece(square!("F6"), square!("D5")).is_ok()); // 1 down & 2 left
+    }
+
+    #[test]
+    fn knight_cannot_capture_piece_of_its_own_color() {
+        let mut board = new_board();
+
+        assert!(board.move_piece(square!("B1"), square!("D2")).is_err());
+        assert!(board.move_piece(square!("G1"), square!("E2")).is_err());
+    }
+
+    #[test]
+    fn piece_cannot_move_outside_board() -> Result<(), Box<dyn Error>> {
+        let mut board = new_board();
+
+        board.move_piece(square!("D2"), square!("D3"))?;
+
+        assert!(board.move_piece(square!("B8"), square!("D9")).is_err());
+        assert!(board.move_piece(square!("B8"), &Square(0, 9)).is_err());
+
+        Ok(())
+    }
+
     // TODO: Add test case that checks that pawns can't move through pieces when moving two steps
-    // TODO: Add out-of-bounds tests
 }
