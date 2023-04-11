@@ -655,13 +655,71 @@ mod tests {
     }
 
     #[test]
-    fn invalid_step_sizes_for_knight_are_rejected() {
+    fn invalid_moves_for_knight_are_rejected() {
         let mut board = new_board();
 
         assert!(board.move_piece(square!("B1"), square!("B3")).is_err());
         assert!(board.move_piece(square!("B1"), square!("B4")).is_err());
         assert!(board.move_piece(square!("B1"), square!("B1")).is_err());
         assert!(board.move_piece(square!("B1"), square!("D3")).is_err());
+    }
+
+    #[test]
+    fn bishops_can_move_diagonally() -> Result<(), Box<dyn Error>> {
+        let mut board = new_board();
+
+        // Move pawns out of the way
+        board.move_piece(square!("D2"), square!("D3"))?;
+        board.move_piece(square!("D7"), square!("D6"))?;
+
+        assert!(board.move_piece(square!("C1"), square!("G5")).is_ok());
+        assert!(board.move_piece(square!("C8"), square!("D7")).is_ok());
+
+        assert!(board.move_piece(square!("G5"), square!("F6")).is_ok());
+        assert!(board.move_piece(square!("D7"), square!("A4")).is_ok());
+
+        assert!(board.move_piece(square!("F6"), square!("C3")).is_ok());
+        assert!(board.move_piece(square!("A4"), square!("D7")).is_ok());
+
+        assert!(board.move_piece(square!("C3"), square!("D2")).is_ok());
+        assert!(board.move_piece(square!("D7"), square!("C8")).is_ok());
+
+        Ok(())
+    }
+
+    #[test]
+    fn invalid_moves_for_bishops_are_rejected() -> Result<(), Box<dyn Error>> {
+        let mut board = new_board();
+
+        // Move pawn out of the way and move the bishop once
+        board.move_piece(square!("D2"), square!("D3"))?;
+        board.move_piece(square!("D7"), square!("D6"))?;
+        board.move_piece(square!("C1"), square!("F4"))?;
+        board.move_piece(square!("C8"), square!("E6"))?;
+
+        assert!(board.move_piece(square!("F4"), square!("F5")).is_err());
+        assert!(board.move_piece(square!("F4"), square!("F3")).is_err());
+        assert!(board.move_piece(square!("F4"), square!("G3")).is_err());
+        assert!(board.move_piece(square!("F4"), square!("E3")).is_err());
+        assert!(board.move_piece(square!("F4"), square!("E6")).is_err());
+
+        Ok(())
+    }
+
+    #[test]
+    fn move_cannot_start_from_an_empty_square() -> Result<(), Box<dyn Error>> {
+        let mut board = new_board();
+
+        // Select one empty square arbitrarily
+        let sq = square!("D4");
+
+        for file in 0..8 {
+            for rank in 0..8 {
+                assert!(board.move_piece(sq, &Square(file, rank)).is_err());
+            }
+        }
+
+        Ok(())
     }
 
     // TODO: Add test case that checks that pawns can't move through pieces when moving two steps
