@@ -1,84 +1,30 @@
 use crate::color::Color;
 use crate::error::chess_error;
+use crate::fen_parser;
 use crate::piece::{get_color, tag_as_moved, Piece};
+use crate::square::Square;
+
+use crate::internal::BoardImpl;
 
 use std::error::Error;
 
-#[macro_export]
-macro_rules! square {
-    (  $str:tt ) => {{
-        assert_eq!($str.len(), 2);
-
-        let u_str = $str.to_uppercase();
-
-        let fst: u8 = u_str.as_bytes()[0];
-        assert!(fst >= 'A' as u8);
-        assert!(fst <= 'H' as u8);
-        let fst = (fst - 'A' as u8) as usize;
-
-        let snd: u8 = u_str.as_bytes()[1];
-        assert!(snd >= '1' as u8);
-        assert!(snd <= '8' as u8);
-        let snd = (snd - '1' as u8) as usize;
-
-        &Square(fst, snd)
-    }};
-}
-
 pub trait Board {
-    fn whose_move(&self) -> Color;
+    fn side_to_move(&self) -> Color;
     fn get_piece(&self, square: &Square) -> Option<Piece>;
     fn move_piece(&mut self, from: &Square, to: &Square) -> Result<(), Box<dyn Error>>;
 }
 
-#[derive(Debug, PartialEq)]
-pub struct Square(usize, usize);
-
 pub fn new_board() -> Box<dyn Board> {
-    let mut pieces = [[None; 8]; 8];
-
-    for col in 0..8 {
-        pieces[col][1] = Some(Piece::PAWN(Color::WHITE, false));
-    }
-    pieces[0][0] = Some(Piece::ROOK(Color::WHITE, false));
-    pieces[1][0] = Some(Piece::KNIGHT(Color::WHITE));
-    pieces[2][0] = Some(Piece::BISHOP(Color::WHITE));
-    pieces[3][0] = Some(Piece::QUEEN(Color::WHITE));
-    pieces[4][0] = Some(Piece::KING(Color::WHITE, false));
-    pieces[5][0] = Some(Piece::BISHOP(Color::WHITE));
-    pieces[6][0] = Some(Piece::KNIGHT(Color::WHITE));
-    pieces[7][0] = Some(Piece::ROOK(Color::WHITE, false));
-
-    for col in 0..8 {
-        pieces[col][6] = Some(Piece::PAWN(Color::BLACK, false));
-    }
-    pieces[0][7] = Some(Piece::ROOK(Color::BLACK, false));
-    pieces[1][7] = Some(Piece::KNIGHT(Color::BLACK));
-    pieces[2][7] = Some(Piece::BISHOP(Color::BLACK));
-    pieces[3][7] = Some(Piece::QUEEN(Color::BLACK));
-    pieces[4][7] = Some(Piece::KING(Color::BLACK, false));
-    pieces[5][7] = Some(Piece::BISHOP(Color::BLACK));
-    pieces[6][7] = Some(Piece::KNIGHT(Color::BLACK));
-    pieces[7][7] = Some(Piece::ROOK(Color::BLACK, false));
-
-    Box::new(BoardImpl {
-        pieces: pieces,
-        player_turn: Color::WHITE,
-    })
-}
-
-struct BoardImpl {
-    pieces: [[Option<Piece>; 8]; 8],
-    player_turn: Color,
+    fen_parser::import("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1").unwrap()
 }
 
 impl Board for BoardImpl {
-    fn whose_move(&self) -> Color {
-        self.player_turn
+    fn side_to_move(&self) -> Color {
+        self.side_to_move
     }
 
     fn get_piece(&self, sq: &Square) -> Option<Piece> {
-        self.pieces[sq.0][sq.1].clone()
+        self.pieces[sq.0][sq.1]
     }
 
     fn move_piece(&mut self, from: &Square, to: &Square) -> Result<(), Box<dyn Error>> {
@@ -88,7 +34,7 @@ impl Board for BoardImpl {
         }
         let piece = piece.unwrap();
 
-        if get_color(&piece) != self.player_turn {
+        if get_color(&piece) != self.side_to_move {
             return Err(chess_error("Not this player's turn to move"));
         }
 
@@ -99,7 +45,7 @@ impl Board for BoardImpl {
         self.pieces[to.0][to.1] = self.pieces[from.0][from.1].map(|p| tag_as_moved(&p));
         self.pieces[from.0][from.1] = None;
         tag_as_moved(&mut self.pieces[to.0][to.1].unwrap());
-        self.player_turn = if self.player_turn == Color::WHITE {
+        self.side_to_move = if self.side_to_move == Color::WHITE {
             Color::BLACK
         } else {
             Color::WHITE
@@ -216,6 +162,8 @@ fn perpendicular_path(from: &Square, to: &Square) -> Option<Vec<Square>> {
 mod tests {
     use super::*;
 
+    use crate::square::square;
+
     use itertools::iproduct;
 
     #[test]
@@ -226,7 +174,7 @@ mod tests {
     #[test]
     fn white_is_starting_player() {
         let board = new_board();
-        assert_eq!(board.whose_move(), Color::WHITE);
+        assert_eq!(board.side_to_move(), Color::WHITE);
     }
 
     #[test]
@@ -235,7 +183,7 @@ mod tests {
 
         board.move_piece(square!("A2"), square!("A4"))?;
 
-        assert_eq!(board.whose_move(), Color::BLACK);
+        assert_eq!(board.side_to_move(), Color::BLACK);
 
         Ok(())
     }
@@ -246,7 +194,7 @@ mod tests {
 
         let _ = board.move_piece(square!("C3"), square!("C7"));
 
-        assert_eq!(board.whose_move(), Color::WHITE);
+        assert_eq!(board.side_to_move(), Color::WHITE);
 
         Ok(())
     }
@@ -258,7 +206,7 @@ mod tests {
         board.move_piece(square!("A2"), square!("A4"))?;
         board.move_piece(square!("D7"), square!("D6"))?;
 
-        assert_eq!(board.whose_move(), Color::WHITE);
+        assert_eq!(board.side_to_move(), Color::WHITE);
 
         Ok(())
     }
