@@ -1,6 +1,6 @@
 use crate::color::Color;
 use crate::error::chess_error;
-use crate::fen_parser;
+use crate::fen;
 use crate::piece::{get_color, tag_as_moved, Piece};
 use crate::square::Square;
 
@@ -15,7 +15,7 @@ pub trait Board {
 }
 
 pub fn new_board() -> Box<dyn Board> {
-    fen_parser::import("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1").unwrap()
+    fen::import("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1").unwrap()
 }
 
 impl Board for BoardImpl {
@@ -165,11 +165,6 @@ mod tests {
     use crate::square::square;
 
     use itertools::iproduct;
-
-    #[test]
-    fn square_macro_is_case_insensitive() {
-        assert_eq!(square!("A1"), square!("a1"));
-    }
 
     #[test]
     fn white_is_starting_player() {

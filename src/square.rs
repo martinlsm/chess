@@ -23,3 +23,13 @@ macro_rules! square {
 }
 
 pub use square;
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn square_macro_is_case_insensitive() {
+        assert_eq!(square!("A1"), square!("a1"));
+    }
+}
