@@ -1,15 +1,13 @@
-use crate::board::Board;
 use crate::color::Color;
 use crate::error::chess_error;
+use crate::board::Board;
 use crate::piece::{get_color, Piece};
-use crate::Result;
 use crate::square::Square;
-
-use crate::internal::board::BoardImpl;
+use crate::Result;
 
 use std::iter::zip;
 
-pub fn import(fen_pos: &str) -> Result<Box<dyn Board>> {
+pub fn import(fen_pos: &str) -> Result<Board> {
     let mut split = fen_pos.split(' ');
 
     let piece_placement = split
@@ -42,10 +40,10 @@ pub fn import(fen_pos: &str) -> Result<Box<dyn Board>> {
         .ok_or(chess_error("Halfmove clock field is missing"))?;
     // TODO: Parse
 
-    Ok(Box::new(BoardImpl {
+    Ok(Board {
         pieces: piece_placement,
         side_to_move,
-    }))
+    })
 }
 
 fn import_piece_placement(placement: &str) -> Result<Box<[[Option<Piece>; 8]; 8]>> {
@@ -130,7 +128,7 @@ fn import_side_to_move(side_to_move: &str) -> Result<Color> {
     }
 }
 
-pub fn export(board: &dyn Board) -> String {
+pub fn export(board: &Board) -> String {
     let mut res = String::new();
 
     for rank in (0..8).rev() {
@@ -220,7 +218,7 @@ mod tests {
         let res: Vec<String> = arbitrary_fens
             .iter()
             .map(|s| fen::import(s).unwrap())
-            .map(|board| fen::export(&*board))
+            .map(|board| fen::export(&board))
             .collect();
 
         // TODO: Only compare the two first space-separated specifiers for now. Remove this limit later.
