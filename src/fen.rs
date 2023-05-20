@@ -4,7 +4,7 @@ use crate::error::chess_error;
 use crate::piece::{get_color, Piece};
 use crate::square::Square;
 
-use crate::internal::BoardImpl;
+use crate::internal::board::BoardImpl;
 
 use std::error::Error;
 use std::iter::zip;

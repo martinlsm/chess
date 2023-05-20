@@ -4,7 +4,7 @@ use crate::fen;
 use crate::piece::{get_color, tag_as_moved, Piece};
 use crate::square::Square;
 
-use crate::internal::BoardImpl;
+use crate::internal::board::BoardImpl;
 
 use std::error::Error;
 
