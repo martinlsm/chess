@@ -2,14 +2,14 @@ use crate::board::Board;
 use crate::color::Color;
 use crate::error::chess_error;
 use crate::piece::{get_color, Piece};
+use crate::Result;
 use crate::square::Square;
 
 use crate::internal::board::BoardImpl;
 
-use std::error::Error;
 use std::iter::zip;
 
-pub fn import(fen_pos: &str) -> Result<Box<dyn Board>, Box<dyn Error>> {
+pub fn import(fen_pos: &str) -> Result<Box<dyn Board>> {
     let mut split = fen_pos.split(' ');
 
     let piece_placement = split
@@ -48,7 +48,7 @@ pub fn import(fen_pos: &str) -> Result<Box<dyn Board>, Box<dyn Error>> {
     }))
 }
 
-fn import_piece_placement(placement: &str) -> Result<Box<[[Option<Piece>; 8]; 8]>, Box<dyn Error>> {
+fn import_piece_placement(placement: &str) -> Result<Box<[[Option<Piece>; 8]; 8]>> {
     let mut res = Box::new([[None; 8]; 8]);
 
     let ranks = placement.split('/');
@@ -64,7 +64,7 @@ fn import_rank(
     rank_idx: usize,
     rank: &str,
     pieces: &mut Box<[[Option<Piece>; 8]; 8]>,
-) -> Result<(), Box<dyn Error>> {
+) -> Result<()> {
     let mut next_piece_file = 0;
 
     for ch in rank.chars() {
@@ -90,7 +90,7 @@ fn import_rank(
     Ok(())
 }
 
-fn import_piece(ch: char) -> Result<Piece, Box<dyn Error>> {
+fn import_piece(ch: char) -> Result<Piece> {
     let color = if ch.is_uppercase() {
         Color::WHITE
     } else {
@@ -111,7 +111,7 @@ fn import_piece(ch: char) -> Result<Piece, Box<dyn Error>> {
     }
 }
 
-fn import_side_to_move(side_to_move: &str) -> Result<Color, Box<dyn Error>> {
+fn import_side_to_move(side_to_move: &str) -> Result<Color> {
     if side_to_move.len() != 1 {
         return Err(chess_error(&format!(
             "Invalid side-to-move field (\"{}\"",
@@ -206,7 +206,7 @@ mod tests {
     use crate::fen;
 
     #[test]
-    fn export_is_the_inverse_of_import() -> Result<(), Box<dyn Error>> {
+    fn export_is_the_inverse_of_import() -> Result<()> {
         let arbitrary_fens = vec![
             "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
             "R4b2/1K4P1/1P5P/1p6/5B2/3pp1r1/pNQ2P2/4k3 w - - 0 1",
