@@ -1,33 +1,48 @@
 use crate::color::Color;
+use crate::error::chess_error;
+use crate::Result;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum Piece {
-    BISHOP(Color),
-    KING(Color, bool),
-    KNIGHT(Color),
-    PAWN(Color, bool),
-    QUEEN(Color),
-    ROOK(Color, bool),
+pub struct Piece {
+    pub p_type: PieceType,
+    pub color: Color,
+    pub has_moved: bool,
 }
 
-pub fn get_color(piece: &Piece) -> Color {
-    match piece {
-        Piece::BISHOP(c) => *c,
-        Piece::KING(c, _) => *c,
-        Piece::KNIGHT(c) => *c,
-        Piece::PAWN(c, _) => *c,
-        Piece::QUEEN(c) => *c,
-        Piece::ROOK(c, _) => *c,
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum PieceType {
+    Bishop,
+    King,
+    Knight,
+    Pawn,
+    Queen,
+    Rook,
+}
+
+pub fn piece_to_letter(p_type: PieceType, color: Option<Color>) -> char {
+    let ch = match p_type {
+        PieceType::Bishop => 'b',
+        PieceType::King => 'k',
+        PieceType::Knight => 'n',
+        PieceType::Pawn => 'p',
+        PieceType::Queen => 'q',
+        PieceType::Rook => 'r',
+    };
+
+    match color {
+        Some(Color::WHITE) => ch.to_uppercase().next().unwrap(),
+        _ => ch,
     }
 }
 
-pub fn tag_as_moved(piece: &Piece) -> Piece {
-    match piece {
-        Piece::BISHOP(color) => Piece::BISHOP(*color),
-        Piece::KING(color, _) => Piece::KING(*color, true),
-        Piece::KNIGHT(color) => Piece::KNIGHT(*color),
-        Piece::PAWN(color, _) => Piece::PAWN(*color, true),
-        Piece::QUEEN(color) => Piece::QUEEN(*color),
-        Piece::ROOK(color, _) => Piece::ROOK(*color, true),
+pub fn letter_to_piece(letter: char) -> Result<PieceType> {
+    match letter {
+        'b' | 'B' => Ok(PieceType::Bishop),
+        'k' | 'K' => Ok(PieceType::King),
+        'n' | 'N' => Ok(PieceType::Knight),
+        'p' | 'P' => Ok(PieceType::Pawn),
+        'q' | 'Q' => Ok(PieceType::Queen),
+        'r' | 'R' => Ok(PieceType::Rook),
+        _ => return Err(chess_error(&format!("Invalid piece type '{}'", letter))),
     }
 }

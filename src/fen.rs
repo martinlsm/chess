@@ -1,7 +1,7 @@
+use crate::board::Board;
 use crate::color::Color;
 use crate::error::chess_error;
-use crate::board::Board;
-use crate::piece::{get_color, Piece};
+use crate::piece::{letter_to_piece, piece_to_letter, Piece};
 use crate::square::Square;
 use crate::Result;
 
@@ -37,7 +37,7 @@ pub fn import(fen_pos: &str) -> Result<Board> {
 
     let _fullmove_counter = split
         .next()
-        .ok_or(chess_error("Halfmove clock field is missing"))?;
+        .ok_or(chess_error("Halfmove counter field is missing"))?;
     // TODO: Parse
 
     Ok(Board {
@@ -88,25 +88,20 @@ fn import_rank(
     Ok(())
 }
 
-fn import_piece(ch: char) -> Result<Piece> {
-    let color = if ch.is_uppercase() {
+fn import_piece(letter: char) -> Result<Piece> {
+    let p_type = letter_to_piece(letter)?;
+
+    let color = if letter.is_uppercase() {
         Color::WHITE
     } else {
         Color::BLACK
     };
 
-    match ch {
-        'p' | 'P' => Ok(Piece::PAWN(color, false)), // XXX: Think about second arg (false) here
-        'n' | 'N' => Ok(Piece::KNIGHT(color)),
-        'b' | 'B' => Ok(Piece::BISHOP(color)),
-        'r' | 'R' => Ok(Piece::ROOK(color, false)), // XXX: Think about second arg (false) here
-        'q' | 'Q' => Ok(Piece::QUEEN(color)),
-        'k' | 'K' => Ok(Piece::KING(color, false)), // XXX: Think about second arg (false) here
-        _ => Err(chess_error(&format!(
-            "Could not parse piece specifier '{}'",
-            ch
-        ))),
-    }
+    Ok(Piece {
+        p_type: p_type,
+        color: color,
+        has_moved: false, // XXX: Fix later
+    })
 }
 
 fn import_side_to_move(side_to_move: &str) -> Result<Color> {
@@ -179,22 +174,7 @@ pub fn export(board: &Board) -> String {
 }
 
 fn export_piece(piece: &Piece) -> char {
-    let color = get_color(piece);
-
-    let ch = match piece {
-        Piece::BISHOP(_) => 'b',
-        Piece::KING(_, _) => 'k',
-        Piece::KNIGHT(_) => 'n',
-        Piece::PAWN(_, _) => 'p',
-        Piece::QUEEN(_) => 'q',
-        Piece::ROOK(_, _) => 'r',
-    };
-
-    if color == Color::WHITE {
-        ch.to_uppercase().next().unwrap()
-    } else {
-        ch
-    }
+    piece_to_letter(piece.p_type, Some(piece.color))
 }
 
 #[cfg(test)]
@@ -202,9 +182,10 @@ mod tests {
     use super::*;
 
     use crate::fen;
+    use crate::internal::test_utils::fen::{compare_fen, CMP_POS, CMP_SIDE_TO_MOVE};
 
     #[test]
-    fn export_is_the_inverse_of_import() -> Result<()> {
+    fn export_is_the_inverse_of_import() {
         let arbitrary_fens = vec![
             "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
             "R4b2/1K4P1/1P5P/1p6/5B2/3pp1r1/pNQ2P2/4k3 w - - 0 1",
@@ -221,19 +202,11 @@ mod tests {
             .map(|board| fen::export(&board))
             .collect();
 
-        // TODO: Only compare the two first space-separated specifiers for now. Remove this limit later.
-        let num_specifiers = 2;
-
-        let fen_cmp = |a: &str, b: &str| {
-            zip(
-                a.split(" ").take(num_specifiers),
-                b.split(" ").take(num_specifiers),
-            )
-            .all(|(x, y)| x == y)
-        };
-
-        assert!(zip(arbitrary_fens, res).all(|(a, b)| fen_cmp(&a, &b)));
-
-        Ok(())
+        assert!(zip(arbitrary_fens, res).all(|(a, b)| compare_fen(
+            &a,
+            &b,
+            CMP_POS & CMP_SIDE_TO_MOVE
+        )
+        .unwrap_or(false)));
     }
 }

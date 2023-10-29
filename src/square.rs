@@ -1,4 +1,6 @@
-#[derive(Debug, PartialEq)]
+use crate::{error, Result};
+
+#[derive(Debug, PartialEq, Copy, Clone)]
 pub struct Square(pub usize, pub usize);
 
 #[macro_export]
@@ -23,6 +25,29 @@ macro_rules! square {
 }
 
 pub use square;
+
+impl Square {
+    pub fn from(s: &str) -> Result<Self> {
+        if s.len() != 2 {
+            return Err(error::chess_error("Invalid length of square notation"));
+        }
+
+        let u_str = s.to_uppercase();
+        let fst = u_str.as_bytes()[0] as char;
+        if fst < 'A' || fst > 'H' {
+            return Err(error::chess_error(&format!("Invalid rank: '{}'", fst)));
+        }
+        let fst = fst as usize - 'A' as usize;
+
+        let snd = u_str.as_bytes()[1] as char;
+        if snd < '1' || snd > '8' {
+            return Err(error::chess_error(&format!("Invalid file: '{}'", snd)));
+        }
+        let snd = snd as usize - '1' as usize;
+
+        Ok(Square(fst, snd))
+    }
+}
 
 #[cfg(test)]
 mod tests {
