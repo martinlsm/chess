@@ -1,8 +1,8 @@
-use crate::color::Color;
 use crate::error::chess_error;
 use crate::Result;
 
-// TODO: Rename
+/// Bit field type for representing a piece, its color and whether it has moved or not (castling rules).
+///
 /// Bits 0..2:
 ///    0 for no piece
 ///    1 for pawn
@@ -33,34 +33,21 @@ pub const BITS_BLACK: Piece = 1 << 3;
 pub const BITS_UNMOVED: Piece = 0 << 4;
 pub const BITS_HAS_MOVED: Piece = 1 << 4;
 
+/// Identical to the Piece type, but to be used in places where the color is the only relevant data.
+/// This type should only be equal to one of the following:
+///     BITS_WHITE, BITS_BLACK
+pub type Color = Piece;
+
 pub fn piece_type(piece: Piece) -> Piece {
     piece & 0b111
 }
 
-pub fn piece_color(piece: Piece) -> Piece {
+pub fn piece_color(piece: Piece) -> Color {
     piece & (1 << 3)
 }
 
 pub fn is_piece(piece: Piece) -> bool {
     piece_type(piece) == BITS_NO_PIECE
-}
-
-pub fn piece_to_letter(piece_bits: Piece) -> char {
-    let ch = match piece_type(piece_bits) {
-        BITS_BISHOP => 'b',
-        BITS_KING => 'k',
-        BITS_KNIGHT => 'n',
-        BITS_PAWN => 'p',
-        BITS_QUEEN => 'q',
-        BITS_ROOK => 'r',
-        _ => panic!("Invalid piece bits")
-    };
-
-    match piece_color(piece_bits) {
-        BITS_WHITE => ch.to_uppercase().next().unwrap(),
-        BITS_BLACK => ch,
-        _ => panic!("Invalid piece bits")
-    }
 }
 
 pub fn letter_to_piece(letter: char) -> Result<Piece> {

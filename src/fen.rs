@@ -1,7 +1,6 @@
 use crate::board::Board;
-use crate::color::Color;
 use crate::error::chess_error;
-use crate::piece::{letter_to_piece, piece_to_letter, piece_type, Piece, BITS_BLACK, BITS_NO_PIECE, BITS_WHITE};
+use crate::piece::{letter_to_piece, piece_color, piece_type, Color, Piece, BITS_BISHOP, BITS_BLACK, BITS_KING, BITS_KNIGHT, BITS_NO_PIECE, BITS_PAWN, BITS_QUEEN, BITS_ROOK, BITS_WHITE};
 use crate::square::Square;
 use crate::Result;
 
@@ -110,8 +109,8 @@ fn import_side_to_move(side_to_move: &str) -> Result<Color> {
 
     let color = side_to_move.chars().nth(0).unwrap();
     match color {
-        'w' => Ok(Color::WHITE),
-        'b' => Ok(Color::BLACK),
+        'w' => Ok(BITS_WHITE),
+        'b' => Ok(BITS_BLACK),
         _ => Err(chess_error(&format!(
             "Invalid side-to-move field \"{}\"",
             side_to_move
@@ -150,8 +149,9 @@ pub fn export(board: &Board) -> String {
     }
 
     match board.side_to_move() {
-        Color::WHITE => res.push_str(" w"),
-        Color::BLACK => res.push_str(" b"),
+        BITS_WHITE => res.push_str(" w"),
+        BITS_BLACK => res.push_str(" b"),
+        _ => panic!("Invalid color")
     }
 
     // TODO: Castling
@@ -168,6 +168,25 @@ pub fn export(board: &Board) -> String {
 
     res
 }
+
+pub fn piece_to_letter(piece_bits: Piece) -> char {
+    let ch = match piece_type(piece_bits) {
+        BITS_BISHOP => 'b',
+        BITS_KING => 'k',
+        BITS_KNIGHT => 'n',
+        BITS_PAWN => 'p',
+        BITS_QUEEN => 'q',
+        BITS_ROOK => 'r',
+        _ => panic!("Invalid piece bits")
+    };
+
+    match piece_color(piece_bits) {
+        BITS_WHITE => ch.to_uppercase().next().unwrap(),
+        BITS_BLACK => ch,
+        _ => panic!("Invalid piece bits")
+    }
+}
+
 
 #[cfg(test)]
 mod tests {

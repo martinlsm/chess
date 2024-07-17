@@ -1,10 +1,9 @@
 use itertools::Itertools;
 
-use crate::color::Color;
 use crate::error::chess_error;
 use crate::fen;
 use crate::internal::utils::clamp_board_idx;
-use crate::piece::{is_piece, piece_color, piece_type, Piece, BITS_HAS_MOVED, BITS_KING, BITS_NO_PIECE, BITS_WHITE};
+use crate::piece::{is_piece, piece_color, piece_type, Piece, Color, BITS_KING};
 use crate::square::Square;
 use crate::Result;
 
@@ -34,9 +33,7 @@ impl Board {
             let from = Square(file, rank);
             let piece = self.pieces[rank][file];
             if is_piece(piece) {
-                let color = if piece_color(piece) == BITS_WHITE { Color::WHITE } else { Color::BLACK };
-
-                if color == self.side_to_move {
+                if piece_color(piece) == self.side_to_move {
                     match piece_type(piece) {
                         BITS_KING => res.append(&mut self.gen_king_moves(&from)),
                         _ => panic!("Not implemented yet"),
