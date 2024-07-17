@@ -1,7 +1,7 @@
 use crate::board::Board;
 use crate::color::Color;
 use crate::error::chess_error;
-use crate::piece::{letter_to_piece, piece_to_letter, Piece};
+use crate::piece::{letter_to_piece, piece_to_letter, piece_type, Piece, BITS_BLACK, BITS_NO_PIECE, BITS_WHITE};
 use crate::square::Square;
 use crate::Result;
 
@@ -46,8 +46,8 @@ pub fn import(fen_pos: &str) -> Result<Board> {
     })
 }
 
-fn import_piece_placement(placement: &str) -> Result<Box<[[Option<Piece>; 8]; 8]>> {
-    let mut res = Box::new([[None; 8]; 8]);
+fn import_piece_placement(placement: &str) -> Result<Box<[[Piece; 8]; 8]>> {
+    let mut res = Box::new([[BITS_NO_PIECE; 8]; 8]);
 
     let ranks = placement.split('/');
 
@@ -61,7 +61,7 @@ fn import_piece_placement(placement: &str) -> Result<Box<[[Option<Piece>; 8]; 8]
 fn import_rank(
     rank_idx: usize,
     rank: &str,
-    pieces: &mut Box<[[Option<Piece>; 8]; 8]>,
+    pieces: &mut Box<[[Piece; 8]; 8]>,
 ) -> Result<()> {
     let mut next_piece_file = 0;
 
@@ -79,7 +79,7 @@ fn import_rank(
                     return Err(chess_error(&format!("Rank is invalid ({})", rank)));
                 }
 
-                pieces[next_piece_file][rank_idx] = Some(import_piece(ch)?);
+                pieces[next_piece_file][rank_idx] = import_piece(ch)?;
                 next_piece_file += 1;
             }
         }
@@ -92,16 +92,12 @@ fn import_piece(letter: char) -> Result<Piece> {
     let p_type = letter_to_piece(letter)?;
 
     let color = if letter.is_uppercase() {
-        Color::WHITE
+        BITS_WHITE
     } else {
-        Color::BLACK
+        BITS_BLACK
     };
 
-    Ok(Piece {
-        p_type: p_type,
-        color: color,
-        has_moved: false, // XXX: Fix later
-    })
+    Ok(p_type & color)
 }
 
 fn import_side_to_move(side_to_move: &str) -> Result<Color> {
@@ -129,21 +125,21 @@ pub fn export(board: &Board) -> String {
     for rank in (0..8).rev() {
         let mut steps_to_next_piece = 0;
         for file in 0..8 {
-            match board.get_piece(&Square(file, rank)) {
-                Some(piece) => {
-                    if steps_to_next_piece > 0 {
-                        res.push_str(steps_to_next_piece.to_string().as_str());
-                    }
-                    steps_to_next_piece = 0;
-
-                    res.push(export_piece(&piece));
-                }
-                None => {
+            match piece_type(board.get_piece(&Square(file, rank))) {
+                BITS_NO_PIECE => {
                     steps_to_next_piece += 1;
                     if file == 7 {
                         // No more piece will come. Fill out with a number.
                         res.push_str(steps_to_next_piece.to_string().as_str());
                     }
+                }
+                p_type => {
+                    if steps_to_next_piece > 0 {
+                        res.push_str(steps_to_next_piece.to_string().as_str());
+                    }
+                    steps_to_next_piece = 0;
+
+                    res.push(piece_to_letter(p_type));
                 }
             }
         }
@@ -171,10 +167,6 @@ pub fn export(board: &Board) -> String {
     res.push_str(" 0");
 
     res
-}
-
-fn export_piece(piece: &Piece) -> char {
-    piece_to_letter(piece.p_type, Some(piece.color))
 }
 
 #[cfg(test)]
