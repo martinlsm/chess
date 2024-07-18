@@ -16,7 +16,7 @@ use crate::Result;
 ///    1 for black
 /// Bit 4 (only relevant for rooks and kings):
 ///    0 if piece has not moved
-///    1 if piece has moved 
+///    1 if piece has moved
 pub type Piece = u8;
 
 pub const BITS_NO_PIECE: Piece = 0 << 0;
@@ -47,21 +47,9 @@ pub fn piece_color(piece: Piece) -> Color {
 }
 
 pub fn is_piece(piece: Piece) -> bool {
-    piece_type(piece) == BITS_NO_PIECE
+    piece_type(piece) != BITS_NO_PIECE
 }
 
-pub fn letter_to_piece(letter: char) -> Result<Piece> {
-    let piece_type = match letter.to_uppercase().next().unwrap() {
-        'B' => BITS_BISHOP,
-        'K' => BITS_KING,
-        'N' => BITS_KNIGHT,
-        'P' => BITS_PAWN,
-        'Q' => BITS_QUEEN,
-        'R' => BITS_ROOK,
-        _ => return Err(chess_error(&format!("Invalid piece type '{}'", letter))),
-    };
-
-    let color = if letter.is_uppercase() { BITS_WHITE } else { BITS_BLACK };
-
-    Ok(color & piece_type)
+pub fn has_moved(piece: Piece) -> bool {
+    (piece & (1 << 4)) != 0
 }

@@ -1,6 +1,6 @@
 {
   "description": "Test cases involving pawns.",
-  "testCases": [
+  "testcases": [
     {
       "start": {
         "description": "Two possible en passant capture possibilities.",
