@@ -1,6 +1,9 @@
 use crate::board::Board;
 use crate::error::chess_error;
-use crate::piece::{letter_to_piece, piece_color, piece_type, Color, Piece, BITS_BISHOP, BITS_BLACK, BITS_KING, BITS_KNIGHT, BITS_NO_PIECE, BITS_PAWN, BITS_QUEEN, BITS_ROOK, BITS_WHITE};
+use crate::piece::{
+    piece_color, piece_type, Color, Piece, BITS_BISHOP, BITS_BLACK, BITS_KING, BITS_KNIGHT,
+    BITS_NO_PIECE, BITS_PAWN, BITS_QUEEN, BITS_ROOK, BITS_WHITE,
+};
 use crate::square::Square;
 use crate::Result;
 
@@ -24,9 +27,15 @@ pub fn import(fen_pos: &str) -> Result<Board> {
         .ok_or(chess_error("Castling ability field is missing"))?;
     // TODO: Parse
 
-    let _en_passant_target_square = split
+    let en_passant_sq= split
         .next()
         .ok_or(chess_error("En passant target square field is missing"))?;
+    let en_passant_sq= if en_passant_sq != "-" {
+        Some(Square::from(en_passant_sq)?)
+    } else {
+        None
+    };
+
     // TODO: Parse
 
     let _halfmove_clock = split
@@ -42,6 +51,7 @@ pub fn import(fen_pos: &str) -> Result<Board> {
     Ok(Board {
         pieces: piece_placement,
         side_to_move,
+        en_passant: en_passant_sq,
     })
 }
 
@@ -57,11 +67,7 @@ fn import_piece_placement(placement: &str) -> Result<Box<[[Piece; 8]; 8]>> {
     Ok(res)
 }
 
-fn import_rank(
-    rank_idx: usize,
-    rank: &str,
-    pieces: &mut Box<[[Piece; 8]; 8]>,
-) -> Result<()> {
+fn import_rank(rank_idx: usize, rank: &str, pieces: &mut Box<[[Piece; 8]; 8]>) -> Result<()> {
     let mut next_piece_file = 0;
 
     for ch in rank.chars() {
@@ -88,7 +94,15 @@ fn import_rank(
 }
 
 fn import_piece(letter: char) -> Result<Piece> {
-    let p_type = letter_to_piece(letter)?;
+    let piece_type = match letter.to_uppercase().next().unwrap() {
+        'B' => BITS_BISHOP,
+        'K' => BITS_KING,
+        'N' => BITS_KNIGHT,
+        'P' => BITS_PAWN,
+        'Q' => BITS_QUEEN,
+        'R' => BITS_ROOK,
+        _ => return Err(chess_error(&format!("Invalid piece type '{}'", letter))),
+    };
 
     let color = if letter.is_uppercase() {
         BITS_WHITE
@@ -96,7 +110,7 @@ fn import_piece(letter: char) -> Result<Piece> {
         BITS_BLACK
     };
 
-    Ok(p_type & color)
+    Ok(color | piece_type)
 }
 
 fn import_side_to_move(side_to_move: &str) -> Result<Color> {
@@ -151,14 +165,15 @@ pub fn export(board: &Board) -> String {
     match board.side_to_move() {
         BITS_WHITE => res.push_str(" w"),
         BITS_BLACK => res.push_str(" b"),
-        _ => panic!("Invalid color")
+        _ => panic!("Invalid color"),
     }
 
     // TODO: Castling
     res.push_str(" KQkq");
 
     // TODO: En passant
-    res.push_str(" -");
+    let en_passant_sq = board.en_passant.map_or(String::from("-"), |sq| sq.to_str());
+    res.push_str(&format!(" {en_passant_sq}"));
 
     // TODO: Halfmove clock
     res.push_str(" 0");
@@ -177,16 +192,15 @@ pub fn piece_to_letter(piece_bits: Piece) -> char {
         BITS_PAWN => 'p',
         BITS_QUEEN => 'q',
         BITS_ROOK => 'r',
-        _ => panic!("Invalid piece bits")
+        _ => panic!("Invalid piece bits"),
     };
 
     match piece_color(piece_bits) {
         BITS_WHITE => ch.to_uppercase().next().unwrap(),
         BITS_BLACK => ch,
-        _ => panic!("Invalid piece bits")
+        _ => panic!("Invalid piece bits"),
     }
 }
-
 
 #[cfg(test)]
 mod tests {

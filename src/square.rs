@@ -47,6 +47,13 @@ impl Square {
 
         Ok(Square(fst, snd))
     }
+
+    pub fn to_str(&self) -> String {
+        let file = (('A' as u8) + (self.0 as u8)) as char;
+        let rank = self.1 + 1;
+
+        format!("{}{}", file, rank)
+    }
 }
 
 #[cfg(test)]
