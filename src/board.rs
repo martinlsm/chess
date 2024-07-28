@@ -4,7 +4,7 @@ use crate::error::chess_error;
 use crate::fen;
 use crate::internal::utils::clamp_board_idx;
 use crate::piece::{
-    is_piece, piece_color, piece_type, Color, Piece, BITS_KING, BITS_NO_PIECE, BITS_PAWN, BITS_WHITE, BITS_BLACK, BITS_BISHOP,
+    is_piece, piece_color, piece_type, Color, Piece, BITS_KING, BITS_NO_PIECE, BITS_PAWN, BITS_WHITE, BITS_BLACK, BITS_BISHOP, BITS_ROOK, BITS_KNIGHT,
 };
 use crate::square::Square;
 use crate::Result;
@@ -45,6 +45,7 @@ impl Board {
                     BITS_KING => res.append(&mut self.gen_king_moves(&from)),
                     BITS_PAWN => res.append(&mut self.gen_pawn_moves(&from)),
                     BITS_ROOK => res.append(&mut self.gen_rook_moves(&from)),
+                    BITS_KNIGHT => res.append(&mut self.gen_knight_moves(&from)),
                     p => panic!("Piece type {p} Not implemented yet"),
                 }
             }
@@ -153,26 +154,73 @@ impl Board {
         let piece = self.pieces[file][rank];
         let rook_color = piece_color(piece);
 
-        assert_eq!(piece_type(self.pieces[from.0][from.1]), BITS_PAWN);
+        assert_eq!(piece_type(self.pieces[from.0][from.1]), BITS_ROOK);
         assert_eq!(piece_color(self.pieces[from.0][from.1]), self.side_to_move());
-        assert!(rank > 0);
-        assert!(rank < 7);
 
         let mut res = Vec::new();
 
-        // Walk right until a piece is found.
-        let (p, steps) = self.walk_to_find_piece(&from, 1, 0);
-        if is_piece(p) {
-            let mut moves_right = (0..steps).map(|x| Square(file + x, rank)).collect_vec();
-            if piece_color(p) != rook_color {
-                moves_right.push(Square(file + steps, rank));
+        // Walk right until a piece or border is found
+        let (p, steps) = self.walk_to_piece_or_border(&from, 1, 0);
+        let mut moves_right = (1..steps).map(|x| Square(file + x, rank)).collect_vec();
+        if is_piece(p) && piece_color(p) != rook_color {
+            moves_right.push(Square(file + steps, rank));
+        }
+        res.append(&mut moves_right);
+
+        // Walk up until a piece or border is found
+        let (p, steps) = self.walk_to_piece_or_border(&from, 0, 1);
+        let mut moves_up = (1..steps).map(|x| Square(file, rank + x)).collect_vec();
+        if is_piece(p) && piece_color(p) != rook_color {
+            moves_up.push(Square(file, rank + steps));
+        }
+        res.append(&mut moves_up);
+
+        // Walk down until a piece or border is found
+        let (p, steps) = self.walk_to_piece_or_border(&from, 0, -1);
+        let mut moves_down = (1..steps).map(|x| Square(file, rank - x)).collect_vec();
+        if is_piece(p) && piece_color(p) != rook_color {
+            moves_down.push(Square(file, rank - steps));
+        }
+        res.append(&mut moves_down);
+
+        // Walk left until a piece or border is found
+        let (p, steps) = self.walk_to_piece_or_border(&from, -1, 0);
+        let mut moves_left = (1..steps).map(|x| Square(file - x, rank)).collect_vec();
+        if is_piece(p) && piece_color(p) != rook_color {
+            moves_left.push(Square(file - steps, rank));
+        }
+        res.append(&mut moves_left);
+
+        res.iter().map(|dest| (from, *dest)).collect_vec()
+    }
+
+    fn gen_knight_moves(&self, &from: &Square) -> Vec<Move> {
+        let file = from.0;
+        let rank = from.1;
+        let piece = self.pieces[file][rank];
+        let knight_color = piece_color(piece);
+
+        assert_eq!(piece_type(self.pieces[from.0][from.1]), BITS_KNIGHT);
+        assert_eq!(piece_color(self.pieces[from.0][from.1]), self.side_to_move());
+
+        let mut res = Vec::new();
+
+        let step_offsets = vec![(-2, -1), (-2, 1),
+                                                 (-1, -2), (-1, 2),
+                                                 (1, -2), (1, 2),
+                                                 (2, 1), (2, 2)];
+        for (file_step, rank_step) in step_offsets {
+            let dest_file = file as i32 + file_step;
+            let dest_rank = rank as i32 + rank_step;
+            if dest_file >= 0 && dest_file < 8 && dest_rank >= 0 && dest_rank < 8 {
+                let p = self.pieces[dest_file as usize][dest_rank as usize];
+                if !(is_piece(p) && piece_color(p) == knight_color) {
+                    res.push(Square(dest_file as usize, dest_rank as usize));
+                }
             }
-            res.append(&mut moves_right);
         }
 
-        // XXX: Other directions
-
-        panic!()
+        res.iter().map(|dest| (from, *dest)).collect_vec()
     }
 
     // TODO: Refactor this. It shouldn't require a mut reference.
@@ -242,22 +290,22 @@ impl Board {
         }
 
         // Check for bishop from up/right.
-        let (p, _) = self.walk_to_find_piece(&king_sq, 1, 1);
+        let (p, _) = self.walk_to_piece_or_border(&king_sq, 1, 1);
         if piece_type(p) == BITS_BISHOP && piece_color(p) != color {
             return true;
         }
         // Check for bishop from up/left.
-        let (p, _) = self.walk_to_find_piece(&king_sq, -1, 1);
+        let (p, _) = self.walk_to_piece_or_border(&king_sq, -1, 1);
         if piece_type(p) == BITS_BISHOP && piece_color(p) != color {
             return true;
         }
         // Check for bishop from down/left.
-        let (p, _) = self.walk_to_find_piece(&king_sq, -1, -1);
+        let (p, _) = self.walk_to_piece_or_border(&king_sq, -1, -1);
         if piece_type(p) == BITS_BISHOP && piece_color(p) != color {
             return true;
         }
         // Check for bishop from down/right.
-        let (p, _) = self.walk_to_find_piece(&king_sq, 1, -1);
+        let (p, _) = self.walk_to_piece_or_border(&king_sq, 1, -1);
         if piece_type(p) == BITS_BISHOP && piece_color(p) != color {
             return true;
         }
@@ -265,7 +313,7 @@ impl Board {
         false
     }
 
-    /// Walk in a specified direction from a starting square until a piece is found.
+    /// Walk in a specified direction from a starting square until a piece or border is found.
     ///
     /// This function starts from a given square and moves stepwise as defined by 
     /// `file_step_sz` and `rank_step_sz`. It continues to move in this direction, step 
@@ -278,12 +326,14 @@ impl Board {
     ///
     /// A tuple where the first element is the `Piece` found (or `BITS_NO_PIECE` if no 
     /// piece is found) and the second element is the number of steps taken to find the 
-    /// piece (or 0 if no piece is found).
-    fn walk_to_find_piece(&self, start: &Square, file_step_sz: i32, rank_step_sz: i32) -> (Piece, usize) {
+    /// piece, or the number of steps to the border in case no piece was found.
+    fn walk_to_piece_or_border(&self, start: &Square, file_step_sz: i32, rank_step_sz: i32) -> (Piece, usize) {
         let mut sq = Square((start.0 as i32 + file_step_sz) as usize, (start.1 as i32 + rank_step_sz) as usize);
-        let mut steps_taken = 1;
+        let mut steps_taken = 0;
 
         while (0..8).contains(&sq.0) && (0..8).contains(&sq.1) {
+            steps_taken += 1;
+
             let p = self.pieces[sq.0][sq.1];
             if p != BITS_NO_PIECE {
                 return (p, steps_taken);
@@ -291,43 +341,9 @@ impl Board {
 
             sq.0 = (sq.0 as i32 + file_step_sz) as usize;
             sq.1 = (sq.1 as i32 + rank_step_sz) as usize;
-            steps_taken += 1;
         }
 
-        (BITS_NO_PIECE, 0)
-    }
-
-    fn perpendicular_path(from: &Square, to: &Square) -> Option<Vec<Square>> {
-        assert!(from != to);
-
-        if from.0 == to.0 {
-            if from.1 < to.1 {
-                Some(
-                    (from.1 + 1..to.1 + 1)
-                        .map(move |x| Square(from.0, x))
-                        .collect(),
-                )
-            } else {
-                Some((to.1..from.1).rev().map(move |x| Square(to.0, x)).collect())
-            }
-        } else if from.1 == to.1 {
-            if from.0 < to.0 {
-                Some(
-                    (from.1 + 1..to.1 + 1)
-                        .map(move |x| Square(from.0, x))
-                        .collect(),
-                )
-            } else {
-                Some(
-                    (to.1..from.1)
-                        .rev()
-                        .map(move |x| Square(from.0, x))
-                        .collect(),
-                )
-            }
-        } else {
-            None
-        }
+        (BITS_NO_PIECE, steps_taken)
     }
 
     fn get_piece_unbounded(&self, file: i32, rank: i32) -> Piece {
