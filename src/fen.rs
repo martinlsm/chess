@@ -27,10 +27,10 @@ pub fn import(fen_pos: &str) -> Result<Board> {
         .ok_or(chess_error("Castling ability field is missing"))?;
     // TODO: Parse
 
-    let en_passant_sq= split
+    let en_passant_sq = split
         .next()
         .ok_or(chess_error("En passant target square field is missing"))?;
-    let en_passant_sq= if en_passant_sq != "-" {
+    let en_passant_sq = if en_passant_sq != "-" {
         Some(Square::from(en_passant_sq)?)
     } else {
         None
