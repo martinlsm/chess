@@ -1,4 +1,9 @@
-use crate::{error, Result};
+use std::ops;
+
+use crate::{
+    error::{self, chess_error},
+    Result,
+};
 
 #[derive(Debug, PartialEq, Copy, Clone)]
 pub struct Square(pub usize, pub usize);

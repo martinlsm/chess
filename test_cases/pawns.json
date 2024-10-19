@@ -1,11 +1,12 @@
 {
-  "description": "Test cases involving pawns.",
+  "description": "Test cases involving pawns",
   "testcases": [
     {
       "start": {
         "description": "Two possible en passant capture possibilities.",
         "fen": "7k/8/8/8/pPp5/8/8/7K b - b3 0 1"
       },
+      "num_valid_moves": 7,
       "expected": [
         {
           "move": "a3",
@@ -42,6 +43,7 @@
         "description": "Same position but without the en passant capture possibilities.",
         "fen": "7k/8/8/8/pPp5/8/8/7K b - - 0 1"
       },
+      "num_valid_moves": 5,
       "expected": [
         {
           "move": "a3",
@@ -70,6 +72,7 @@
         "description": "Full set of pawns but no moves.",
         "fen": "8/4k3/1p1p1p1p/pPpPpPpP/P1P1P1P1/8/5K2/8 w - - 0 1"
       },
+      "num_valid_moves": 8,
       "expected": [
         {
           "move": "Ke1",
@@ -110,6 +113,7 @@
         "description": "Black has two en passant possibilities, but only one is legal.",
         "fen": "8/8/4k3/8/2pPp3/8/B7/7K b - d3 0 1"
       },
+      "num_valid_moves": 9,
       "expected": [
         {
           "move": "e3",

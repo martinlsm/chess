@@ -1,13 +1,14 @@
 use itertools::Itertools;
 
 use crate::error::chess_error;
-use crate::fen;
 use crate::internal::utils::clamp_board_idx;
 use crate::piece::{
-    is_piece, piece_color, piece_type, Color, Piece, BITS_KING, BITS_NO_PIECE, BITS_PAWN, BITS_WHITE, BITS_BLACK, BITS_BISHOP, BITS_ROOK, BITS_KNIGHT,
+    is_piece, piece_color, piece_type, Color, Piece, BITS_BISHOP, BITS_BLACK, BITS_KING,
+    BITS_KNIGHT, BITS_NO_PIECE, BITS_PAWN, BITS_ROOK, BITS_WHITE,
 };
 use crate::square::Square;
 use crate::Result;
+use crate::{fen, piece};
 
 pub type Move = (Square, Square);
 
@@ -51,7 +52,9 @@ impl Board {
             }
         }
 
-        res.into_iter().filter(|mv| !self.move_cause_self_check(*mv)).collect_vec()
+        res.into_iter()
+            .filter(|mv| !self.move_cause_self_check(*mv))
+            .collect_vec()
     }
 
     pub fn move_piece(&mut self, from: &Square, to: &Square) -> Result<()> {
@@ -97,10 +100,17 @@ impl Board {
         let file = from.0;
         let rank = from.1;
         let piece = self.pieces[file][rank];
-        let facing_dir: i32 = if self.side_to_move() == BITS_WHITE { 1 } else { -1 };
+        let facing_dir: i32 = if self.side_to_move() == BITS_WHITE {
+            1
+        } else {
+            -1
+        };
 
         assert_eq!(piece_type(self.pieces[from.0][from.1]), BITS_PAWN);
-        assert_eq!(piece_color(self.pieces[from.0][from.1]), self.side_to_move());
+        assert_eq!(
+            piece_color(self.pieces[from.0][from.1]),
+            self.side_to_move()
+        );
         assert!(rank > 0);
         assert!(rank < 7);
 
@@ -114,7 +124,9 @@ impl Board {
             // Move forward two steps
             let rank_dest = (rank as i32 + 2 * facing_dir) as usize;
             if ((rank == 1 && piece_color(piece) == BITS_WHITE)
-            && (rank == 6 && piece_color(piece) == BITS_BLACK)) && self.pieces[file][rank_dest] == BITS_NO_PIECE {
+                && (rank == 6 && piece_color(piece) == BITS_BLACK))
+                && self.pieces[file][rank_dest] == BITS_NO_PIECE
+            {
                 res.push((*from, Square(file, rank_dest)));
             }
         }
@@ -155,7 +167,10 @@ impl Board {
         let rook_color = piece_color(piece);
 
         assert_eq!(piece_type(self.pieces[from.0][from.1]), BITS_ROOK);
-        assert_eq!(piece_color(self.pieces[from.0][from.1]), self.side_to_move());
+        assert_eq!(
+            piece_color(self.pieces[from.0][from.1]),
+            self.side_to_move()
+        );
 
         let mut res = Vec::new();
 
@@ -201,14 +216,23 @@ impl Board {
         let knight_color = piece_color(piece);
 
         assert_eq!(piece_type(self.pieces[from.0][from.1]), BITS_KNIGHT);
-        assert_eq!(piece_color(self.pieces[from.0][from.1]), self.side_to_move());
+        assert_eq!(
+            piece_color(self.pieces[from.0][from.1]),
+            self.side_to_move()
+        );
 
         let mut res = Vec::new();
 
-        let step_offsets = vec![(-2, -1), (-2, 1),
-                                                 (-1, -2), (-1, 2),
-                                                 (1, -2), (1, 2),
-                                                 (2, 1), (2, 2)];
+        let step_offsets = vec![
+            (-2, -1),
+            (-2, 1),
+            (-1, -2),
+            (-1, 2),
+            (1, -2),
+            (1, 2),
+            (2, 1),
+            (2, 2),
+        ];
         for (file_step, rank_step) in step_offsets {
             let dest_file = file as i32 + file_step;
             let dest_rank = rank as i32 + rank_step;
@@ -289,6 +313,26 @@ impl Board {
             }
         }
 
+        // Check for knight
+        let knight_offsets = vec![
+            (1, 2),
+            (-1, 2),
+            (1, -2),
+            (-1, -2),
+            (2, 1),
+            (2, -1),
+            (-2, 1),
+            (-2, -1),
+        ];
+        for offset in &knight_offsets {
+            let file = kf + offset.0;
+            let rank = kr + offset.1;
+            let p = self.get_piece_unbounded(file, rank);
+            if piece_type(p) == BITS_KNIGHT && piece_color(p) != color {
+                return true;
+            }
+        }
+
         // Check for bishop from up/right.
         let (p, _) = self.walk_to_piece_or_border(&king_sq, 1, 1);
         if piece_type(p) == BITS_BISHOP && piece_color(p) != color {
@@ -315,20 +359,28 @@ impl Board {
 
     /// Walk in a specified direction from a starting square until a piece or border is found.
     ///
-    /// This function starts from a given square and moves stepwise as defined by 
-    /// `file_step_sz` and `rank_step_sz`. It continues to move in this direction, step 
-    /// by step, until it either finds a piece or reaches the edge of the board. If a 
-    /// piece is found, the function returns the piece and the number of steps taken to 
-    /// reach it. If no piece is found and the edge of the board is reached, it returns 
+    /// This function starts from a given square and moves stepwise as defined by
+    /// `file_step_sz` and `rank_step_sz`. It continues to move in this direction, step
+    /// by step, until it either finds a piece or reaches the edge of the board. If a
+    /// piece is found, the function returns the piece and the number of steps taken to
+    /// reach it. If no piece is found and the edge of the board is reached, it returns
     /// `BITS_NO_PIECE` and -1.
-    /// 
+    ///
     /// # Returns
     ///
-    /// A tuple where the first element is the `Piece` found (or `BITS_NO_PIECE` if no 
-    /// piece is found) and the second element is the number of steps taken to find the 
+    /// A tuple where the first element is the `Piece` found (or `BITS_NO_PIECE` if no
+    /// piece is found) and the second element is the number of steps taken to find the
     /// piece, or the number of steps to the border in case no piece was found.
-    fn walk_to_piece_or_border(&self, start: &Square, file_step_sz: i32, rank_step_sz: i32) -> (Piece, usize) {
-        let mut sq = Square((start.0 as i32 + file_step_sz) as usize, (start.1 as i32 + rank_step_sz) as usize);
+    fn walk_to_piece_or_border(
+        &self,
+        start: &Square,
+        file_step_sz: i32,
+        rank_step_sz: i32,
+    ) -> (Piece, usize) {
+        let mut sq = Square(
+            (start.0 as i32 + file_step_sz) as usize,
+            (start.1 as i32 + rank_step_sz) as usize,
+        );
         let mut steps_taken = 0;
 
         while (0..8).contains(&sq.0) && (0..8).contains(&sq.1) {
@@ -360,5 +412,10 @@ mod tests {
     #[test]
     fn pawns() -> crate::Result<()> {
         crate::internal::test_utils::json::run_check_num_moves_test("test_cases/pawns.json")
+    }
+
+    #[test]
+    fn knights() -> crate::Result<()> {
+        crate::internal::test_utils::json::run_check_num_moves_test("test_cases/knights.json")
     }
 }
