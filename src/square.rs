@@ -1,7 +1,5 @@
-use std::ops;
-
 use crate::{
-    error::{self, chess_error},
+    error,
     Result,
 };
 

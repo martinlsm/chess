@@ -1,5 +1,3 @@
-use crate::error::chess_error;
-use crate::Result;
 
 /// Bit field type for representing a piece, its color and whether it has moved or not (castling rules).
 ///
