@@ -47,6 +47,7 @@ impl Board {
                     BITS_PAWN => res.append(&mut self.gen_pawn_moves(&from)),
                     BITS_ROOK => res.append(&mut self.gen_rook_moves(&from)),
                     BITS_KNIGHT => res.append(&mut self.gen_knight_moves(&from)),
+                    BITS_BISHOP => res.append(&mut self.gen_bishop_moves(&from)),
                     p => panic!("Piece type {p} Not implemented yet"),
                 }
             }
@@ -158,6 +159,55 @@ impl Board {
         }
 
         res
+    }
+
+    fn gen_bishop_moves(&self, &from: &Square) -> Vec<Move> {
+        let file = from.0;
+        let rank = from.1;
+        let piece = self.pieces[file][rank];
+        let bishop_color = piece_color(piece);
+
+        assert_eq!(piece_type(self.pieces[from.0][from.1]), BITS_BISHOP);
+        assert_eq!(
+            piece_color(self.pieces[from.0][from.1]),
+            self.side_to_move()
+        );
+
+        let mut res = Vec::new();
+
+        // Walk up-right until a piece or border is found
+        let (p, steps) = self.walk_to_piece_or_border(&from, 1, 1);
+        let mut moves_up_right = (1..steps).map(|x| Square(file + x, rank + x)).collect_vec();
+        if !is_piece(p) || is_piece(p) && piece_color(p) != bishop_color {
+            moves_up_right.push(Square(file + steps, rank));
+        }
+        res.append(&mut moves_up_right);
+
+        // Walk down-right until a piece or border is found
+        let (p, steps) = self.walk_to_piece_or_border(&from, 1, -1);
+        let mut moves_down_right = (1..steps).map(|x| Square(file + x, rank - x)).collect_vec();
+        if !is_piece(p) || is_piece(p) && piece_color(p) != bishop_color {
+            moves_down_right.push(Square(file + steps, rank));
+        }
+        res.append(&mut moves_down_right);
+
+        // Walk up-left until a piece or border is found
+        let (p, steps) = self.walk_to_piece_or_border(&from, -1, 1);
+        let mut moves_up_left = (1..steps).map(|x| Square(file - x, rank + x)).collect_vec();
+        if !is_piece(p) || is_piece(p) && piece_color(p) != bishop_color {
+            moves_up_left.push(Square(file + steps, rank));
+        }
+        res.append(&mut moves_up_left);
+
+        // Walk down-left until a piece or border is found
+        let (p, steps) = self.walk_to_piece_or_border(&from, -1, -1);
+        let mut moves_down_left = (1..steps).map(|x| Square(file - x, rank - x)).collect_vec();
+        if !is_piece(p) || is_piece(p) && piece_color(p) != bishop_color {
+            moves_down_left.push(Square(file + steps, rank));
+        }
+        res.append(&mut moves_down_left);
+
+        res.iter().map(|dest| (from, *dest)).collect_vec()
     }
 
     fn gen_rook_moves(&self, &from: &Square) -> Vec<Move> {
@@ -417,5 +467,10 @@ mod tests {
     #[test]
     fn knights() -> crate::Result<()> {
         crate::internal::test_utils::json::run_check_num_moves_test("test_cases/knights.json")
+    }
+
+    #[test]
+    fn bishops() -> crate::Result<()> {
+        crate::internal::test_utils::json::run_check_num_moves_test("test_cases/bishops.json")
     }
 }

@@ -6,6 +6,7 @@
         "description": "Standard starting position.",
         "fen": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
       },
+      "num_valid_moves": 20,
       "expected": [
         {
           "move": "Na3",
