@@ -1,6 +1,7 @@
 use itertools::Itertools;
 
 use crate::error::chess_error;
+use crate::fen;
 use crate::internal::utils::clamp_board_idx;
 use crate::piece::{
     is_piece, piece_color, piece_type, Color, Piece, BITS_BISHOP, BITS_BLACK, BITS_KING,
@@ -8,7 +9,6 @@ use crate::piece::{
 };
 use crate::square::Square;
 use crate::Result;
-use crate::fen;
 
 pub type Move = (Square, Square);
 
@@ -241,7 +241,6 @@ impl Board {
         let to = move_.1;
 
         assert!(piece_color(self.pieces[from.0][from.1]) == self.side_to_move());
-        assert!(!is_piece(self.pieces[to.0][to.1]));
 
         // Do the move temporarily
         self.pieces[to.0][to.1] = self.pieces[from.0][from.1];
@@ -402,7 +401,10 @@ impl Board {
             .collect_vec();
 
         if !is_piece(p) || is_piece(p) && piece_color(p) != p_color {
-            moves.push(Square(start.0 + steps, start.1 + steps));
+            moves.push(Square(
+                (start.0 as i32 + file_step_sz * steps as i32) as usize,
+                (start.1 as i32 + rank_step_sz * steps as i32) as usize,
+            ));
         }
 
         moves
@@ -432,5 +434,10 @@ mod tests {
     #[test]
     fn bishops() -> crate::Result<()> {
         crate::internal::test_utils::json::run_check_num_moves_test("test_cases/bishops.json")
+    }
+
+    #[test]
+    fn rooks() -> crate::Result<()> {
+        crate::internal::test_utils::json::run_check_num_moves_test("test_cases/rooks.json")
     }
 }
