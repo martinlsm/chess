@@ -1,7 +1,4 @@
-use crate::{
-    error,
-    Result,
-};
+use crate::{error, Result};
 
 #[derive(Debug, PartialEq, Copy, Clone)]
 pub struct Square(pub usize, pub usize);

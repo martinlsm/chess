@@ -1,0 +1,19 @@
+{
+  "description": "Test cases involving rooks",
+  "testcases": [
+    {
+      "start": {
+        "description": "White rook and pawn threatens black king's adjacent squares",
+        "fen": "7k/6RP/8/8/3K2p1/8/8/8 b - - 0 1"
+      },
+      "num_valid_moves": 2
+    },
+    {
+      "start": {
+        "description": "White rook",
+        "fen": "7k/6RP/8/8/3K2p1/8/8/8 w - - 0 1"
+      },
+      "num_valid_moves": 18
+    }
+  ]
+}

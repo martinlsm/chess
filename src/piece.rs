@@ -1,4 +1,3 @@
-
 /// Bit field type for representing a piece, its color and whether it has moved or not (castling rules).
 ///
 /// Bits 0..2:
