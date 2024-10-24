@@ -4,8 +4,7 @@ use crate::error::chess_error;
 use crate::fen;
 use crate::internal::utils::clamp_board_idx;
 use crate::piece::{
-    is_piece, piece_color, piece_type, Color, Piece, BITS_BISHOP, BITS_BLACK, BITS_KING,
-    BITS_KNIGHT, BITS_NO_PIECE, BITS_PAWN, BITS_ROOK, BITS_WHITE,
+    is_piece, piece_color, piece_type, Color, Piece, BITS_BISHOP, BITS_BLACK, BITS_KING, BITS_KNIGHT, BITS_NO_PIECE, BITS_PAWN, BITS_QUEEN, BITS_ROOK, BITS_WHITE
 };
 use crate::square::Square;
 use crate::Result;
@@ -243,6 +242,7 @@ impl Board {
         assert!(piece_color(self.pieces[from.0][from.1]) == self.side_to_move());
 
         // Do the move temporarily
+        let target_sq_state = self.pieces[to.0][to.1];
         self.pieces[to.0][to.1] = self.pieces[from.0][from.1];
         self.pieces[from.0][from.1] = BITS_NO_PIECE;
 
@@ -251,7 +251,7 @@ impl Board {
 
         // Revert the move
         self.pieces[from.0][from.1] = self.pieces[to.0][to.1];
-        self.pieces[to.0][to.1] = BITS_NO_PIECE;
+        self.pieces[to.0][to.1] = target_sq_state;
 
         in_check
     }
@@ -338,6 +338,27 @@ impl Board {
         // Check for bishop from down/right.
         let (p, _) = self.walk_to_piece_or_border(&king_sq, 1, -1);
         if piece_type(p) == BITS_BISHOP && piece_color(p) != color {
+            return true;
+        }
+
+        // Check for rook from the left.
+        let (p, _) = self.walk_to_piece_or_border(&king_sq, -1, 0);
+        if piece_type(p) == BITS_ROOK && piece_color(p) != color {
+            return true;
+        }
+        // Check for rook from the right.
+        let (p, _) = self.walk_to_piece_or_border(&king_sq, 1, 0);
+        if piece_type(p) == BITS_ROOK && piece_color(p) != color {
+            return true;
+        }
+        // Check for rook from above.
+        let (p, _) = self.walk_to_piece_or_border(&king_sq, 0, 1);
+        if piece_type(p) == BITS_ROOK && piece_color(p) != color {
+            return true;
+        }
+        // Check for rook from below.
+        let (p, _) = self.walk_to_piece_or_border(&king_sq, 0, -1);
+        if piece_type(p) == BITS_ROOK && piece_color(p) != color {
             return true;
         }
 
