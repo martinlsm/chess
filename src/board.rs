@@ -4,7 +4,8 @@ use crate::error::chess_error;
 use crate::fen;
 use crate::internal::utils::clamp_board_idx;
 use crate::piece::{
-    is_piece, piece_color, piece_type, Color, Piece, BITS_BISHOP, BITS_BLACK, BITS_KING, BITS_KNIGHT, BITS_NO_PIECE, BITS_PAWN, BITS_QUEEN, BITS_ROOK, BITS_WHITE
+    is_piece, piece_color, piece_type, Color, Piece, BITS_BISHOP, BITS_BLACK, BITS_KING,
+    BITS_KNIGHT, BITS_NO_PIECE, BITS_PAWN, BITS_QUEEN, BITS_ROOK, BITS_WHITE,
 };
 use crate::square::Square;
 use crate::Result;
@@ -47,6 +48,7 @@ impl Board {
                     BITS_ROOK => res.append(&mut self.gen_rook_moves(&from)),
                     BITS_KNIGHT => res.append(&mut self.gen_knight_moves(&from)),
                     BITS_BISHOP => res.append(&mut self.gen_bishop_moves(&from)),
+                    BITS_QUEEN => res.append(&mut self.gen_queen_moves(&from)),
                     p => panic!("Piece type {p} Not implemented yet"),
                 }
             }
@@ -161,7 +163,6 @@ impl Board {
     }
 
     fn gen_bishop_moves(&self, &from: &Square) -> Vec<Move> {
-        assert_eq!(piece_type(self.pieces[from.0][from.1]), BITS_BISHOP);
         assert_eq!(
             piece_color(self.pieces[from.0][from.1]),
             self.side_to_move()
@@ -179,7 +180,6 @@ impl Board {
     }
 
     fn gen_rook_moves(&self, &from: &Square) -> Vec<Move> {
-        assert_eq!(piece_type(self.pieces[from.0][from.1]), BITS_ROOK);
         assert_eq!(
             piece_color(self.pieces[from.0][from.1]),
             self.side_to_move()
@@ -232,6 +232,13 @@ impl Board {
         }
 
         res.iter().map(|dest| (from, *dest)).collect_vec()
+    }
+
+    fn gen_queen_moves(&self, &from: &Square) -> Vec<Move> {
+        self.gen_bishop_moves(&from)
+            .into_iter()
+            .chain(self.gen_rook_moves(&from).into_iter())
+            .collect_vec()
     }
 
     // TODO: Refactor this. It shouldn't require a mut reference.
@@ -320,20 +327,24 @@ impl Board {
             }
         }
 
-        // Check for bishop
+        // Check for bishop or queen (diagonally)
         let bishop_dirs = vec![(1, 1), (-1, 1), (-1, -1), (1, -1)];
         for dir in &bishop_dirs {
             let (p, _) = self.walk_to_piece_or_border(&king_sq, dir.0, dir.1);
-            if piece_type(p) == BITS_BISHOP && piece_color(p) != color {
+            if (piece_type(p) == BITS_BISHOP || piece_type(p) == BITS_QUEEN)
+                && piece_color(p) != color
+            {
                 return true;
             }
         }
 
-        // Check for rook
+        // Check for rook or queen (orthogonally)
         let rook_dirs = vec![(-1, 0), (1, 0), (0, -1), (0, 1)];
         for dir in &rook_dirs {
             let (p, _) = self.walk_to_piece_or_border(&king_sq, dir.0, dir.1);
-            if piece_type(p) == BITS_ROOK && piece_color(p) != color {
+            if (piece_type(p) == BITS_ROOK || piece_type(p) == BITS_QUEEN)
+                && piece_color(p) != color
+            {
                 return true;
             }
         }
@@ -436,5 +447,10 @@ mod tests {
     #[test]
     fn rooks() -> crate::Result<()> {
         crate::internal::test_utils::json::run_check_num_moves_test("test_cases/rooks.json")
+    }
+
+    #[test]
+    fn queen() -> crate::Result<()> {
+        crate::internal::test_utils::json::run_check_num_moves_test("test_cases/queens.json")
     }
 }
