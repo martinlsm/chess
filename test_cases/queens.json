@@ -1,0 +1,19 @@
+{
+  "description": "Test cases involving queens",
+  "testcases": [
+    {
+      "start": {
+        "description": "White queen",
+        "fen": "8/3k3p/8/8/2K1Qp2/5P2/8/8 w - - 0 1"
+      },
+      "num_valid_moves": 27
+    },
+    {
+      "start": {
+        "description": "White queen threatens black king's adjacent squares",
+        "fen": "8/5p2/5k2/8/2K1Qp2/5P2/8/8 b - - 0 1"
+      },
+      "num_valid_moves": 2
+    }
+  ]
+}
