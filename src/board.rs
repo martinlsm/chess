@@ -1,3 +1,5 @@
+use std::cell::RefCell;
+
 use itertools::Itertools;
 
 use crate::error::chess_error;
@@ -14,7 +16,7 @@ pub type Move = (Square, Square);
 
 #[derive(Clone)]
 pub struct Board {
-    pub pieces: Box<[[Piece; 8]; 8]>,
+    pub pieces: RefCell<Box<[[Piece; 8]; 8]>>,
     pub side_to_move: Color,
     /// This is set to the square that a pawn can be captured on in case it can be captured via en passant.
     /// If en passant is not possible, this is set to None. The color is set to the color of the pawn.
@@ -32,7 +34,7 @@ impl Board {
     }
 
     pub fn get_piece(&self, sq: &Square) -> Piece {
-        self.pieces[sq.0][sq.1]
+        self.pieces.borrow()[sq.0][sq.1]
     }
 
     pub fn gen_moves(&mut self) -> Vec<Move> {
@@ -40,7 +42,7 @@ impl Board {
 
         for (rank, file) in (0..8).cartesian_product(0..8) {
             let from = Square(file, rank);
-            let piece = self.pieces[file][rank];
+            let piece = self.pieces.borrow()[file][rank];
             if is_piece(piece) && piece_color(piece) == self.side_to_move() {
                 match piece_type(piece) {
                     BITS_KING => res.append(&mut self.gen_king_moves(&from)),
@@ -72,7 +74,7 @@ impl Board {
     }
 
     fn gen_king_moves(&self, from: &Square) -> Vec<Move> {
-        assert_eq!(piece_type(self.pieces[from.0][from.1]), BITS_KING);
+        assert_eq!(piece_type(self.pieces.borrow()[from.0][from.1]), BITS_KING);
 
         let mut res = Vec::new();
 
@@ -84,7 +86,7 @@ impl Board {
                     continue;
                 }
 
-                let king_col: Color = piece_color(self.pieces[from.0][from.1]);
+                let king_col: Color = piece_color(self.pieces.borrow()[from.0][from.1]);
 
                 let p = self.get_piece_unbounded(file as i32, rank as i32);
                 if is_piece(p) && piece_color(p) == king_col {
@@ -101,16 +103,16 @@ impl Board {
     fn gen_pawn_moves(&self, from: &Square) -> Vec<Move> {
         let file = from.0;
         let rank = from.1;
-        let piece = self.pieces[file][rank];
+        let piece = self.pieces.borrow()[file][rank];
         let facing_dir: i32 = if self.side_to_move() == BITS_WHITE {
             1
         } else {
             -1
         };
 
-        assert_eq!(piece_type(self.pieces[from.0][from.1]), BITS_PAWN);
+        assert_eq!(piece_type(self.pieces.borrow()[from.0][from.1]), BITS_PAWN);
         assert_eq!(
-            piece_color(self.pieces[from.0][from.1]),
+            piece_color(self.pieces.borrow()[from.0][from.1]),
             self.side_to_move()
         );
         assert!(rank > 0);
@@ -120,14 +122,14 @@ impl Board {
 
         // Move forward one step
         let rank_dest = (rank as i32 + facing_dir) as usize;
-        if self.pieces[file][rank_dest] == BITS_NO_PIECE {
+        if self.pieces.borrow()[file][rank_dest] == BITS_NO_PIECE {
             res.push((*from, Square(file, rank_dest)));
 
             // Move forward two steps
             let rank_dest = (rank as i32 + 2 * facing_dir) as usize;
             if ((rank == 1 && piece_color(piece) == BITS_WHITE)
                 && (rank == 6 && piece_color(piece) == BITS_BLACK))
-                && self.pieces[file][rank_dest] == BITS_NO_PIECE
+                && self.pieces.borrow()[file][rank_dest] == BITS_NO_PIECE
             {
                 res.push((*from, Square(file, rank_dest)));
             }
@@ -135,7 +137,7 @@ impl Board {
 
         // Capture right
         if file < 7 {
-            let dest = self.pieces[file + 1][rank_dest];
+            let dest = self.pieces.borrow()[file + 1][rank_dest];
             if is_piece(dest) && piece_color(piece) != piece_color(dest) {
                 res.push((*from, Square(file + 1, rank_dest)));
             } else if self
@@ -148,7 +150,7 @@ impl Board {
 
         // Capture left
         if file > 0 {
-            let dest = self.pieces[file - 1][rank_dest];
+            let dest = self.pieces.borrow()[file - 1][rank_dest];
             if is_piece(dest) && piece_color(piece) != piece_color(dest) {
                 res.push((*from, Square(file - 1, rank_dest)));
             } else if self
@@ -164,7 +166,7 @@ impl Board {
 
     fn gen_bishop_moves(&self, &from: &Square) -> Vec<Move> {
         assert_eq!(
-            piece_color(self.pieces[from.0][from.1]),
+            piece_color(self.pieces.borrow()[from.0][from.1]),
             self.side_to_move()
         );
 
@@ -181,7 +183,7 @@ impl Board {
 
     fn gen_rook_moves(&self, &from: &Square) -> Vec<Move> {
         assert_eq!(
-            piece_color(self.pieces[from.0][from.1]),
+            piece_color(self.pieces.borrow()[from.0][from.1]),
             self.side_to_move()
         );
 
@@ -199,12 +201,15 @@ impl Board {
     fn gen_knight_moves(&self, &from: &Square) -> Vec<Move> {
         let file = from.0;
         let rank = from.1;
-        let piece = self.pieces[file][rank];
+        let piece = self.pieces.borrow()[file][rank];
         let knight_color = piece_color(piece);
 
-        assert_eq!(piece_type(self.pieces[from.0][from.1]), BITS_KNIGHT);
         assert_eq!(
-            piece_color(self.pieces[from.0][from.1]),
+            piece_type(self.pieces.borrow()[from.0][from.1]),
+            BITS_KNIGHT
+        );
+        assert_eq!(
+            piece_color(self.pieces.borrow()[from.0][from.1]),
             self.side_to_move()
         );
 
@@ -224,7 +229,7 @@ impl Board {
             let dest_file = file as i32 + file_step;
             let dest_rank = rank as i32 + rank_step;
             if dest_file >= 0 && dest_file < 8 && dest_rank >= 0 && dest_rank < 8 {
-                let p = self.pieces[dest_file as usize][dest_rank as usize];
+                let p = self.pieces.borrow()[dest_file as usize][dest_rank as usize];
                 if !(is_piece(p) && piece_color(p) == knight_color) {
                     res.push(Square(dest_file as usize, dest_rank as usize));
                 }
@@ -246,19 +251,27 @@ impl Board {
         let from = move_.0;
         let to = move_.1;
 
-        assert!(piece_color(self.pieces[from.0][from.1]) == self.side_to_move());
+        assert!(piece_color(self.pieces.borrow()[from.0][from.1]) == self.side_to_move());
 
         // Do the move temporarily
-        let target_sq_state = self.pieces[to.0][to.1];
-        self.pieces[to.0][to.1] = self.pieces[from.0][from.1];
-        self.pieces[from.0][from.1] = BITS_NO_PIECE;
+        let target_sq_state = {
+            let mut pieces = self.pieces.borrow_mut();
+            let target_sq_state = pieces[to.0][to.1];
+            pieces[to.0][to.1] = pieces[from.0][from.1];
+            pieces[from.0][from.1] = BITS_NO_PIECE;
+
+            target_sq_state
+        };
 
         // Check for self check
         let in_check = self.check_for_check(self.side_to_move());
 
         // Revert the move
-        self.pieces[from.0][from.1] = self.pieces[to.0][to.1];
-        self.pieces[to.0][to.1] = target_sq_state;
+        {
+            let mut pieces = self.pieces.borrow_mut();
+            pieces[from.0][from.1] = pieces[to.0][to.1];
+            pieces[to.0][to.1] = target_sq_state;
+        }
 
         in_check
     }
@@ -270,7 +283,7 @@ impl Board {
         let mut king_rank: usize = 0xdeadbeef;
         for file in 0..8 {
             for rank in 0..8 {
-                let p = self.pieces[file][rank];
+                let p = self.pieces.borrow()[file][rank];
                 if piece_type(p) == BITS_KING && piece_color(p) == color {
                     king_file = file;
                     king_rank = rank;
@@ -381,7 +394,7 @@ impl Board {
         while (0..8).contains(&sq.0) && (0..8).contains(&sq.1) {
             steps_taken += 1;
 
-            let p = self.pieces[sq.0][sq.1];
+            let p = self.pieces.borrow()[sq.0][sq.1];
             if p != BITS_NO_PIECE {
                 return (p, steps_taken);
             }
@@ -420,7 +433,7 @@ impl Board {
 
     fn get_piece_unbounded(&self, file: i32, rank: i32) -> Piece {
         if file >= 0 && file < 8 && rank >= 0 && rank < 8 {
-            self.pieces[file as usize][rank as usize]
+            self.pieces.borrow()[file as usize][rank as usize]
         } else {
             0
         }

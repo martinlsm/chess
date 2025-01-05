@@ -7,6 +7,7 @@ use crate::piece::{
 use crate::square::Square;
 use crate::Result;
 
+use std::cell::RefCell;
 use std::iter::zip;
 
 pub fn import(fen_pos: &str) -> Result<Board> {
@@ -49,7 +50,7 @@ pub fn import(fen_pos: &str) -> Result<Board> {
     // TODO: Parse
 
     Ok(Board {
-        pieces: piece_placement,
+        pieces: RefCell::new(piece_placement),
         side_to_move,
         en_passant: en_passant_sq,
     })
